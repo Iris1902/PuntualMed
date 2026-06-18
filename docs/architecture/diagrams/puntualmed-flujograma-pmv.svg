@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 1380" font-family="'DejaVu Sans', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 z" fill="#6B7280"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="1380" fill="#ffffff"/>
+
+  <text x="580" y="44" text-anchor="middle" font-size="28" font-weight="bold" fill="#1E3A8A">Flujograma PMV — PuntualMed</text>
+  <text x="580" y="70" text-anchor="middle" font-size="14" fill="#6B7280">Proceso de desarrollo del Producto Mínimo Viable</text>
+
+  <!-- ===== ARROWS ===== -->
+  <g stroke="#6B7280" stroke-width="2" fill="none">
+    <line x1="580" y1="148" x2="580" y2="182" marker-end="url(#arrow)"/>
+    <line x1="580" y1="234" x2="580" y2="268" marker-end="url(#arrow)"/>
+    <line x1="580" y1="320" x2="580" y2="354" marker-end="url(#arrow)"/>
+    <line x1="580" y1="406" x2="580" y2="440" marker-end="url(#arrow)"/>
+    <line x1="580" y1="492" x2="580" y2="526" marker-end="url(#arrow)"/>
+    <line x1="580" y1="578" x2="580" y2="612" marker-end="url(#arrow)"/>
+    <line x1="580" y1="664" x2="580" y2="698" marker-end="url(#arrow)"/>
+    <!-- diamond8 Si -> 9 -->
+    <line x1="580" y1="818" x2="580" y2="852" marker-end="url(#arrow)"/>
+    <line x1="580" y1="904" x2="580" y2="938" marker-end="url(#arrow)"/>
+    <line x1="580" y1="990" x2="580" y2="1024" marker-end="url(#arrow)"/>
+    <!-- diamond11 Si -> 12 -->
+    <line x1="580" y1="1144" x2="580" y2="1178" marker-end="url(#arrow)"/>
+    <line x1="580" y1="1230" x2="580" y2="1264" marker-end="url(#arrow)"/>
+
+    <!-- diamond8 No -> corregir -->
+    <line x1="700" y1="758" x2="820" y2="758" marker-end="url(#arrow)"/>
+    <!-- corregir loopback -> pruebas internas (caja 7) -->
+    <polyline points="920,732 920,638 722,638" marker-end="url(#arrow)"/>
+    <!-- diamond11 No -> mejorar -->
+    <line x1="700" y1="1084" x2="820" y2="1084" marker-end="url(#arrow)"/>
+    <!-- mejorar loopback -> recopilar (caja 10) -->
+    <polyline points="920,1058 920,964 722,964" marker-end="url(#arrow)"/>
+
+    <!-- conector punteado info box -> caja 4 -->
+    <line x1="360" y1="380" x2="438" y2="380" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- arrow labels -->
+  <g font-size="14" font-weight="bold">
+    <text x="596" y="842" fill="#16A34A">Sí</text>
+    <text x="748" y="750" fill="#EF4444">No</text>
+    <text x="596" y="1168" fill="#16A34A">Sí</text>
+    <text x="748" y="1076" fill="#EF4444">No</text>
+  </g>
+
+  <!-- ===== INFO BOX ===== -->
+  <g>
+    <rect x="40" y="300" width="320" height="252" rx="10" fill="#ECFDF5" stroke="#34D399" stroke-width="2"/>
+    <text x="56" y="328" font-size="16" font-weight="bold" fill="#065F46">El PMV de PuntualMed incluye:</text>
+    <g font-size="13" fill="#064E3B">
+      <text x="60" y="356">• Alta de medicamentos (manual)</text>
+      <text x="60" y="380">• Recordatorios de toma</text>
+      <text x="60" y="404">• Confirmación de toma con foto</text>
+      <text x="60" y="428">• Calendario de adherencia</text>
+      <text x="60" y="452">• Alerta al familiar (Telegram)</text>
+    </g>
+    <text x="56" y="488" font-size="14" font-weight="bold" fill="#065F46">Versiones futuras:</text>
+    <g font-size="13" fill="#064E3B">
+      <text x="60" y="512">• OCR de receta por foto (IA)</text>
+      <text x="60" y="534">• Agente IA de síntomas y efectos</text>
+    </g>
+  </g>
+
+  <!-- ===== NODES ===== -->
+  <g font-size="15" fill="#07263b" text-anchor="middle">
+    <rect x="470" y="96" width="220" height="52" rx="26" fill="#1E3A8A"/>
+    <text x="580" y="128" fill="#ffffff" font-weight="bold">Inicio</text>
+
+    <rect x="440" y="182" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="213">Identificar el problema</text>
+
+    <rect x="440" y="268" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="299">Definir usuarios objetivo</text>
+
+    <rect x="440" y="354" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="378">Seleccionar funciones</text>
+    <text x="580" y="396">esenciales del PMV</text>
+
+    <rect x="440" y="440" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="471">Diseñar prototipo (Figma)</text>
+
+    <rect x="440" y="526" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="557">Desarrollar el PMV</text>
+
+    <rect x="440" y="612" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="643">Pruebas internas</text>
+
+    <rect x="440" y="852" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="883">Lanzar a usuarios piloto</text>
+
+    <rect x="440" y="938" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="969">Recopilar retroalimentación</text>
+
+    <rect x="440" y="1178" width="280" height="52" rx="6" fill="#38BDF8"/>
+    <text x="580" y="1209">Planificar versión completa</text>
+
+    <rect x="470" y="1264" width="220" height="52" rx="26" fill="#1E3A8A"/>
+    <text x="580" y="1296" fill="#ffffff" font-weight="bold">Fin</text>
+  </g>
+
+  <!-- ===== DECISIONS ===== -->
+  <g text-anchor="middle">
+    <polygon points="580,698 700,758 580,818 460,758" fill="#F3F4F6" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="580" y="754" font-size="14" fill="#1E3A8A" font-weight="bold">¿Funciona</text>
+    <text x="580" y="772" font-size="14" fill="#1E3A8A" font-weight="bold">correctamente?</text>
+
+    <polygon points="580,1024 700,1084 580,1144 460,1084" fill="#F3F4F6" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="580" y="1080" font-size="14" fill="#1E3A8A" font-weight="bold">¿Aporta valor</text>
+    <text x="580" y="1098" font-size="14" fill="#1E3A8A" font-weight="bold">a los usuarios?</text>
+  </g>
+
+  <!-- ===== LOOP BOXES ===== -->
+  <g text-anchor="middle" font-size="14" fill="#06371f">
+    <rect x="820" y="732" width="200" height="52" rx="6" fill="#34D399"/>
+    <text x="920" y="763">Corregir errores</text>
+
+    <rect x="820" y="1058" width="200" height="52" rx="6" fill="#34D399"/>
+    <text x="920" y="1083">Mejorar</text>
+    <text x="920" y="1101">funcionalidades</text>
+  </g>
+</svg>
