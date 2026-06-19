@@ -20,3 +20,12 @@ def test_settings_requires_database_url(monkeypatch):
     # Act / Assert
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_settings_rejects_non_async_driver(monkeypatch):
+    # Arrange: un DATABASE_URL con driver sincrono debe fallar al arrancar,
+    # con un mensaje claro (fail fast, fail loud) en vez de reventar en runtime
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/db")
+    # Act / Assert
+    with pytest.raises(ValidationError, match=r"postgresql\+asyncpg"):
+        Settings(_env_file=None)
