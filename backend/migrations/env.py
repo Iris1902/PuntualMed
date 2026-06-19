@@ -8,8 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
 from app.db.base import Base
-
-# Importar aqui los modelos cuando existan para que --autogenerate los detecte.
+from app.users.models import Profile  # noqa: F401
 
 config = context.config
 
