@@ -46,8 +46,9 @@ async def test_get_me_returns_profile(app, client):
     finally:
         app.dependency_overrides.clear()
     assert response.status_code == 200
-    assert response.json()["id"] == str(_USER_ID)
-    assert response.json()["full_name"] == "Iris"
+    data = response.json()
+    assert data["id"] == str(_USER_ID)
+    assert data["full_name"] == "Iris"
 
 
 async def test_get_me_without_token_returns_401(app, client):

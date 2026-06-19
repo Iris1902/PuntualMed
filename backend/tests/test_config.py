@@ -48,5 +48,5 @@ def test_settings_rejects_empty_supabase_jwt_secret(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "   ")
     # Act / Assert
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="vacio"):
         Settings(_env_file=None)
