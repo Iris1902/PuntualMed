@@ -145,3 +145,27 @@ async def test_add_schedule_returns_201(app, client):
 async def test_medications_without_token_returns_401(app, client):
     response = await client.get("/api/v1/medications")
     assert response.status_code == 401
+
+
+async def test_patch_medication_404_for_other_owner(app, client):
+    repo = _FakeRepo()
+    foreign = _seed_medication(repo, uuid.uuid4())
+    _wire(app, repo)
+    try:
+        response = await client.patch(
+            f"/api/v1/medications/{foreign.id}", json={"name": "Hackeado"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 404
+
+
+async def test_list_schedules_404_for_other_owner(app, client):
+    repo = _FakeRepo()
+    foreign = _seed_medication(repo, uuid.uuid4())
+    _wire(app, repo)
+    try:
+        response = await client.get(f"/api/v1/medications/{foreign.id}/schedules")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 404
