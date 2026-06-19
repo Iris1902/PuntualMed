@@ -48,4 +48,11 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
         )
-    return CurrentUser(id=uuid.UUID(sub), email=payload.get("email"))
+    try:
+        user_id = uuid.UUID(sub)
+    except ValueError as err:
+        # Un sub con firma valida pero formato no-UUID es un token invalido
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
+        ) from err
+    return CurrentUser(id=user_id, email=payload.get("email"))

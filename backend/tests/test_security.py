@@ -67,3 +67,17 @@ async def test_get_current_user_invalid_token_raises_401():
     with pytest.raises(HTTPException) as exc:
         await get_current_user(creds)
     assert exc.value.status_code == 401
+
+
+async def test_get_current_user_non_uuid_sub_raises_401():
+    # Token con firma valida pero sub que no es UUID -> 401, no 500
+    get_settings.cache_clear()
+    token = jwt.encode(
+        {"sub": "not-a-uuid", "aud": "authenticated", "exp": int(time.time()) + 3600},
+        _SECRET,
+        algorithm="HS256",
+    )
+    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    with pytest.raises(HTTPException) as exc:
+        await get_current_user(creds)
+    assert exc.value.status_code == 401
