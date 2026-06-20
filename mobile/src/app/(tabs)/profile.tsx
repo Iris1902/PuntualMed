@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useAuth } from "@/lib/auth";
 import { useAsync } from "@/lib/use-async";
 import { fetchMe, updateProfile } from "@/lib/users-api";
@@ -33,7 +34,7 @@ export default function Profile() {
 
   return (
     <ScrollView className="flex-1 bg-surface" contentContainerClassName="gap-4 p-4">
-      <Text className="text-xl font-bold text-primary">Perfil</Text>
+      <ScreenHeader title="Perfil" />
       <Text className="font-sans text-muted">{session?.user?.email}</Text>
 
       <Card className="gap-2">

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { createMedication } from "@/lib/meds-api";
 import { FREQUENCIES, UNITS, toInput, validateMedForm, type MedForm } from "@/lib/med-form";
 
@@ -50,7 +51,7 @@ export default function AddMedication() {
 
   return (
     <ScrollView className="flex-1 bg-white" contentContainerClassName="gap-3 p-4">
-      <Text className="text-xl font-bold text-primary">Nuevo medicamento</Text>
+      <ScreenHeader title="Nuevo medicamento" />
       <Input value={form.name} onChangeText={(v) => set("name", v)} placeholder="Nombre" />
 
       <Text className="font-semibold text-primary">Dosis</Text>

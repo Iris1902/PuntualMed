@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useAsync } from "@/lib/use-async";
 import { deleteMedication, getMedication } from "@/lib/meds-api";
 
@@ -26,6 +27,7 @@ export default function MedicationDetail() {
 
   return (
     <ScrollView className="flex-1 bg-surface" contentContainerClassName="gap-3 p-4">
+      <ScreenHeader title="Medicamento" />
       {loading ? <Text className="text-center font-sans text-muted">Cargando...</Text> : null}
       {error ? <Text className="text-center text-danger">No se pudo cargar</Text> : null}
       {med ? (

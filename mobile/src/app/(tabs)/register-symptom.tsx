@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useAsync } from "@/lib/use-async";
 import { listMedications } from "@/lib/meds-api";
 import { createSymptom } from "@/lib/symptoms-api";
@@ -37,7 +38,7 @@ export default function RegisterSymptom() {
 
   return (
     <ScrollView className="flex-1 bg-white" contentContainerClassName="gap-3 p-4">
-      <Text className="text-xl font-bold text-primary">Nuevo síntoma</Text>
+      <ScreenHeader title="Nuevo síntoma" />
       <Input value={description} onChangeText={setDescription} placeholder="Describe el síntoma" />
 
       <Text className="font-semibold text-primary">Severidad</Text>

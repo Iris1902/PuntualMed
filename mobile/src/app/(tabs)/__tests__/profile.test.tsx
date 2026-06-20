@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react-native";
 import Profile from "../profile";
 
+jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn() }) }));
 jest.mock("@/lib/auth", () => ({ useAuth: () => ({ session: { user: { email: "t@e.com" } } }) }));
 jest.mock("@/lib/users-api", () => ({
   fetchMe: jest.fn().mockResolvedValue({ id: "u1", full_name: "Iris" }),
