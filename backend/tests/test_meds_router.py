@@ -5,8 +5,31 @@ from app.core.security import CurrentUser, get_current_user
 from app.meds.models import Medication
 from app.meds.router import get_medication_service
 from app.meds.service import MedicationService
+from app.reminders.router import get_intake_service
+from app.reminders.service import IntakeService
 
 _USER_ID = uuid.uuid4()
+
+
+class _FakeIntakeRepo:
+    def __init__(self) -> None:
+        self.store = {}
+
+    async def add(self, intake):
+        self.store[intake.id] = intake
+        return intake
+
+    async def add_many(self, intakes):
+        for i in intakes:
+            self.store[i.id] = i
+        return intakes
+
+    async def get_for_user(self, intake_id, user_id):
+        i = self.store.get(intake_id)
+        return i if i and i.user_id == user_id else None
+
+    async def list_for_user(self, user_id, lower, upper, status):
+        return [i for i in self.store.values() if i.user_id == user_id]
 
 
 class _FakeRepo:
@@ -65,6 +88,7 @@ def _override_auth():
 def _wire(app, repo):
     app.dependency_overrides[get_current_user] = _override_auth
     app.dependency_overrides[get_medication_service] = lambda: MedicationService(repo)
+    app.dependency_overrides[get_intake_service] = lambda: IntakeService(_FakeIntakeRepo())
 
 
 async def test_create_medication_returns_201(app, client):
@@ -169,3 +193,26 @@ async def test_list_schedules_404_for_other_owner(app, client):
     finally:
         app.dependency_overrides.clear()
     assert response.status_code == 404
+
+
+async def test_create_medication_generates_intakes(app, client):
+    repo = _FakeRepo()
+    intake_repo = _FakeIntakeRepo()
+    app.dependency_overrides[get_current_user] = _override_auth
+    app.dependency_overrides[get_medication_service] = lambda: MedicationService(repo)
+    app.dependency_overrides[get_intake_service] = lambda: IntakeService(intake_repo)
+    try:
+        response = await client.post(
+            "/api/v1/medications",
+            json={
+                "name": "Paracetamol", "dose": "500 mg", "start_date": "2026-06-19",
+                "duration_days": 7,
+                "schedules": [{"time_of_day": "08:00:00"}, {"time_of_day": "20:00:00"}],
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 201
+    # 7 dias x 2 horarios = 14 tomas generadas
+    assert len(intake_repo.store) == 14
+    assert all(i.user_id == _USER_ID for i in intake_repo.store.values())

@@ -14,6 +14,8 @@ from app.meds.schemas import (
     ScheduleRead,
 )
 from app.meds.service import MedicationService
+from app.reminders.router import get_intake_service
+from app.reminders.service import IntakeService
 
 router = APIRouter(prefix="/medications", tags=["medications"])
 
@@ -31,8 +33,11 @@ async def create_medication(
     data: MedicationCreate,
     current: CurrentUser = Depends(get_current_user),
     service: MedicationService = Depends(get_medication_service),
+    intake_service: IntakeService = Depends(get_intake_service),
 ) -> MedicationRead:
     medication = await service.create(current.id, data)
+    # Genera las tomas del tratamiento en la misma sesion/transaccion
+    await intake_service.generate_for_medication(medication)
     return MedicationRead.model_validate(medication)
 
 
