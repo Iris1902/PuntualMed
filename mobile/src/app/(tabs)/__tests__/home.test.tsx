@@ -1,13 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react-native";
 import Home from "../home";
 
-// scheduled_at relativo a "ahora" -> el test no depende de la fecha real del sistema
-// (intake pendiente 1h en el futuro -> aparece como proxima toma). Prefijo `mock`
-// requerido: jest.mock se hoistea sobre las variables del modulo.
-// Nota: babel-jest hoistea el factory antes de la inicializacion de const, por lo que
-// mockSoon no puede calcularse dinamicamente aqui; se usa una fecha estatica futura.
-const mockSoon = "2099-12-31T10:00:00.000Z";
-
+// Fecha estatica futura (no relativa): el factory de jest.mock se hoistea sobre las
+// variables del modulo, asi que el intake pendiente "siempre futuro" hace el test
+// independiente de la fecha del sistema.
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock("@/lib/auth", () => ({ useAuth: () => ({ session: { user: { email: "t@e.com" } } }) }));
 jest.mock("@/lib/intakes-api", () => ({
