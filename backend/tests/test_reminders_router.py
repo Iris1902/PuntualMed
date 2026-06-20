@@ -12,6 +12,8 @@ _USER_ID = uuid.uuid4()
 class _FakeRepo:
     def __init__(self) -> None:
         self.store: dict[uuid.UUID, IntakeLog] = {}
+        # Inicializado a None; se actualiza en cada llamada a list_for_user
+        self.last_call: dict | None = None
 
     async def add(self, intake):
         self.store[intake.id] = intake
@@ -27,6 +29,8 @@ class _FakeRepo:
         return i if i and i.user_id == user_id else None
 
     async def list_for_user(self, user_id, lower, upper, status):
+        # Registra los argumentos de la ultima llamada para verificacion en tests
+        self.last_call = {"lower": lower, "upper": upper, "status": status}
         items = [i for i in self.store.values() if i.user_id == user_id]
         if status is not None:
             items = [i for i in items if i.status == status]
@@ -117,3 +121,18 @@ async def test_confirm_intake_404_for_other_owner(app, client):
 async def test_intakes_without_token_returns_401(app, client):
     response = await client.get("/api/v1/intakes")
     assert response.status_code == 401
+
+
+async def test_list_intakes_forwards_date_filters(app, client):
+    repo = _FakeRepo()
+    _wire(app, repo)
+    try:
+        response = await client.get("/api/v1/intakes?from_date=2026-06-19&to_date=2026-06-20")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    # Verifica que el servicio convirtio las fechas a bounds tz-aware y los paso al repo
+    assert repo.last_call is not None
+    assert repo.last_call["lower"] is not None
+    assert repo.last_call["upper"] is not None
+    assert repo.last_call["lower"] < repo.last_call["upper"]
