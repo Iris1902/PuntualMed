@@ -6,3 +6,7 @@ export async function signIn(email: string, password: string): Promise<ActionRes
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   return { error: error?.message ?? null };
 }
+
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
+}
