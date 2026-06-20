@@ -50,3 +50,30 @@ def test_settings_rejects_empty_supabase_jwt_secret(monkeypatch):
     # Act / Assert
     with pytest.raises(ValidationError, match="vacio"):
         Settings(_env_file=None)
+
+
+def test_settings_requires_supabase_url(monkeypatch):
+    # Sin la URL del proyecto no se puede construir el JWKS -> fail fast
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", "test-jwt-secret-with-at-least-32-bytes")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_rejects_non_https_supabase_url(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", "test-jwt-secret-with-at-least-32-bytes")
+    monkeypatch.setenv("SUPABASE_URL", "http://insecure.supabase.co")
+    with pytest.raises(ValidationError, match="https"):
+        Settings(_env_file=None)
+
+
+def test_settings_derives_jwks_url_and_issuer(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/db")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", "test-jwt-secret-with-at-least-32-bytes")
+    monkeypatch.setenv("SUPABASE_URL", "https://abc.supabase.co/")
+    settings = Settings(_env_file=None)
+    assert settings.supabase_url == "https://abc.supabase.co"
+    assert settings.supabase_jwks_url == "https://abc.supabase.co/auth/v1/.well-known/jwks.json"
+    assert settings.supabase_issuer == "https://abc.supabase.co/auth/v1"
