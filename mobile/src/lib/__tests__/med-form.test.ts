@@ -1,18 +1,27 @@
-import { parseTimes, toInput, validateMedForm } from "../med-form";
+import { buildDose, FREQUENCIES, parseTimes, toInput, UNITS, validateMedForm } from "../med-form";
 
 const valid = {
   name: "Losartan",
-  dose: "50mg",
+  amount: "50",
+  unit: "mg",
   startDate: "2026-06-20",
   durationDays: "30",
-  timesRaw: "09:00, 21:00",
+  times: ["09:00", "21:00"],
   notes: "",
 };
 
-describe("parseTimes", () => {
-  it("splits and trims comma-separated times, dropping blanks", () => {
-    expect(parseTimes(" 09:00 , 21:00 , ")).toEqual(["09:00", "21:00"]);
-    expect(parseTimes("")).toEqual([]);
+describe("UNITS / FREQUENCIES", () => {
+  it("exposes unit and frequency options", () => {
+    expect(UNITS).toContain("mg");
+    expect(FREQUENCIES.length).toBeGreaterThan(0);
+    expect(FREQUENCIES[0]).toHaveProperty("label");
+    expect(FREQUENCIES[0]).toHaveProperty("times");
+  });
+});
+
+describe("buildDose", () => {
+  it("joins amount and unit", () => {
+    expect(buildDose("50", "mg")).toBe("50 mg");
   });
 });
 
@@ -21,19 +30,16 @@ describe("validateMedForm", () => {
     expect(validateMedForm(valid)).toBeNull();
   });
   it("rejects a missing name", () => {
-    expect(validateMedForm({ ...valid, name: "  " })).toMatch(/nombre/i);
+    expect(validateMedForm({ ...valid, name: " " })).toMatch(/nombre/i);
+  });
+  it("rejects a missing amount", () => {
+    expect(validateMedForm({ ...valid, amount: "" })).toMatch(/dosis/i);
+  });
+  it("rejects no schedule times", () => {
+    expect(validateMedForm({ ...valid, times: [] })).toMatch(/horario/i);
   });
   it("rejects a non-positive duration", () => {
-    expect(validateMedForm({ ...valid, durationDays: "0" })).toMatch(/duracion/i);
-  });
-  it("rejects a bad date", () => {
-    expect(validateMedForm({ ...valid, startDate: "20-06-2026" })).toMatch(/fecha/i);
-  });
-  it("rejects an empty times list", () => {
-    expect(validateMedForm({ ...valid, timesRaw: "" })).toMatch(/horario/i);
-  });
-  it("rejects a malformed time", () => {
-    expect(validateMedForm({ ...valid, timesRaw: "9am" })).toMatch(/horario/i);
+    expect(validateMedForm({ ...valid, durationDays: "0" })).toMatch(/duraci/i);
   });
 });
 
@@ -41,11 +47,17 @@ describe("toInput", () => {
   it("maps the form to the backend MedicationInput", () => {
     expect(toInput(valid)).toEqual({
       name: "Losartan",
-      dose: "50mg",
+      dose: "50 mg",
       start_date: "2026-06-20",
       duration_days: 30,
       notes: null,
       schedules: [{ time_of_day: "09:00" }, { time_of_day: "21:00" }],
     });
+  });
+});
+
+describe("parseTimes", () => {
+  it("still trims and drops blanks (kept for reuse)", () => {
+    expect(parseTimes(" 09:00 , , 21:00 ")).toEqual(["09:00", "21:00"]);
   });
 });

@@ -1,11 +1,21 @@
 import type { MedicationInput } from "@/lib/meds-api";
 
+export const UNITS = ["mg", "g", "ml", "mcg", "UI"] as const;
+
+export const FREQUENCIES: { label: string; times: string[] }[] = [
+  { label: "1 vez al día", times: ["09:00"] },
+  { label: "2 veces al día", times: ["09:00", "21:00"] },
+  { label: "Cada 8 horas", times: ["08:00", "16:00", "00:00"] },
+  { label: "Cada 12 horas", times: ["08:00", "20:00"] },
+];
+
 export type MedForm = {
   name: string;
-  dose: string;
+  amount: string;
+  unit: string;
   startDate: string;
   durationDays: string;
-  timesRaw: string;
+  times: string[];
   notes: string;
 };
 
@@ -13,32 +23,32 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
 export function parseTimes(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+  return raw.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+}
+
+export function buildDose(amount: string, unit: string): string {
+  return `${amount.trim()} ${unit}`;
 }
 
 // Devuelve un mensaje de error o null si el formulario es valido.
 export function validateMedForm(form: MedForm): string | null {
   if (!form.name.trim()) return "El nombre es obligatorio";
-  if (!form.dose.trim()) return "La dosis es obligatoria";
-  if (!DATE_RE.test(form.startDate)) return "La fecha debe ser YYYY-MM-DD";
+  if (!form.amount.trim()) return "La dosis es obligatoria";
+  if (!DATE_RE.test(form.startDate)) return "Elige una fecha de inicio";
   const days = Number(form.durationDays);
-  if (!Number.isInteger(days) || days <= 0) return "La duracion debe ser un numero positivo";
-  const times = parseTimes(form.timesRaw);
-  if (times.length === 0) return "Agrega al menos un horario";
-  if (times.some((t) => !TIME_RE.test(t))) return "Cada horario debe ser HH:MM";
+  if (!Number.isInteger(days) || days <= 0) return "La duración debe ser un número positivo";
+  if (form.times.length === 0) return "Agrega al menos un horario";
+  if (form.times.some((t) => !TIME_RE.test(t))) return "Cada horario debe ser HH:MM";
   return null;
 }
 
 export function toInput(form: MedForm): MedicationInput {
   return {
     name: form.name.trim(),
-    dose: form.dose.trim(),
+    dose: buildDose(form.amount, form.unit),
     start_date: form.startDate,
     duration_days: Number(form.durationDays),
     notes: form.notes.trim() || null,
-    schedules: parseTimes(form.timesRaw).map((t) => ({ time_of_day: t })),
+    schedules: form.times.map((t) => ({ time_of_day: t })),
   };
 }

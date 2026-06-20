@@ -7,7 +7,7 @@ jest.mock("expo-router", () => ({ useRouter: () => ({ back: () => mockBack() }) 
 jest.mock("@/lib/meds-api", () => ({ createMedication: jest.fn().mockResolvedValue({ id: "m9" }) }));
 
 describe("AddMedication", () => {
-  it("does not submit and shows an error when required fields are empty", () => {
+  it("does not submit and shows an error when the name is empty", () => {
     render(<AddMedication />);
     fireEvent.press(screen.getByText("Guardar"));
     expect(createMedication).not.toHaveBeenCalled();
