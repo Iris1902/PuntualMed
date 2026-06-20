@@ -12,6 +12,7 @@ _TZ = ZoneInfo("America/Guayaquil")
 class _FakeRepo:
     def __init__(self) -> None:
         self.store: dict[uuid.UUID, IntakeLog] = {}
+        self.last_call: dict = {}
 
     async def add(self, intake):
         self.store[intake.id] = intake
@@ -27,6 +28,7 @@ class _FakeRepo:
         return i if i and i.user_id == user_id else None
 
     async def list_for_user(self, user_id, lower, upper, status):
+        self.last_call = {"lower": lower, "upper": upper, "status": status}
         items = [i for i in self.store.values() if i.user_id == user_id]
         if status is not None:
             items = [i for i in items if i.status == status]
@@ -61,6 +63,7 @@ async def test_generate_uses_app_timezone():
     expected = datetime.combine(date(2026, 6, 19), time(8, 0), tzinfo=_TZ)
     # mismo instante absoluto (08:00 en UTC-5 == 13:00 UTC)
     assert intakes[0].scheduled_at == expected
+    # America/Guayaquil no observa DST, por lo que el offset UTC-5 es fijo
     assert intakes[0].scheduled_at.astimezone(UTC).hour == 13
 
 
@@ -89,3 +92,23 @@ async def test_confirm_other_user_returns_none():
     repo.store[intake.id] = intake
     service = IntakeService(repo)
     assert await service.confirm(other, intake.id, None) is None
+
+
+async def test_list_for_user_passes_inclusive_tz_bounds():
+    # Verifica que el servicio convierte las fechas a limites tz-aware correctos
+    user_id = uuid.uuid4()
+    repo = _FakeRepo()
+    service = IntakeService(repo)
+
+    # Caso con rango de fechas: to_date es inclusivo, upper apunta al dia siguiente
+    await service.list_for_user(
+        user_id, from_date=date(2026, 6, 19), to_date=date(2026, 6, 20), status=None
+    )
+    tz = ZoneInfo("America/Guayaquil")
+    assert repo.last_call["lower"] == datetime.combine(date(2026, 6, 19), time(0, 0), tzinfo=tz)
+    assert repo.last_call["upper"] == datetime.combine(date(2026, 6, 21), time(0, 0), tzinfo=tz)
+
+    # Caso sin filtro de fechas: lower y upper deben ser None
+    await service.list_for_user(user_id, from_date=None, to_date=None, status=None)
+    assert repo.last_call["lower"] is None
+    assert repo.last_call["upper"] is None
