@@ -3,3 +3,9 @@ Proyecto-dispositivos-moviles.docx
 
 # Planes de implementacion locales (no se versionan)
 plans/
+
+# Mobile (Expo)
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/.env
