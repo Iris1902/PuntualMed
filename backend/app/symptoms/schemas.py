@@ -18,6 +18,12 @@ class SymptomCreate(BaseModel):
     occurred_at: datetime | None = None
 
 
+class SymptomUpdate(BaseModel):
+    description: str | None = None
+    severity: SeverityLevel | None = None
+    medication_id: uuid.UUID | None = None
+
+
 class SymptomRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

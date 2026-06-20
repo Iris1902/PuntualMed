@@ -23,3 +23,17 @@ class SymptomRepository:
             .order_by(Symptom.occurred_at.desc())
         )
         return list(result.scalars().all())
+
+    async def get_for_user(
+        self, symptom_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Symptom | None:
+        result = await self._session.execute(
+            select(Symptom).where(
+                Symptom.id == symptom_id, Symptom.user_id == user_id
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def delete(self, symptom: Symptom) -> None:
+        await self._session.delete(symptom)
+        await self._session.flush()

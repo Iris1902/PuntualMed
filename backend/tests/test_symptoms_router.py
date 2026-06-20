@@ -109,3 +109,69 @@ async def test_list_symptoms_returns_only_owned(app, client):
 async def test_symptoms_without_token_returns_401(app, client):
     response = await client.get("/api/v1/symptoms")
     assert response.status_code == 401
+
+
+# --- Fake repo and helpers for get_for_user / delete ---
+
+class _FakeSymptomRepoWithOwner(_FakeSymptomRepo):
+    async def get_for_user(self, symptom_id, user_id):
+        s = self.store.get(symptom_id)
+        return s if s is not None and s.user_id == user_id else None
+
+    async def delete(self, symptom):
+        self.store.pop(symptom.id, None)
+
+
+# --- PATCH tests ---
+
+async def test_patch_symptom_returns_200_with_updated_description(app, client):
+    repo = _FakeSymptomRepoWithOwner()
+    symptom = _seed(repo, _USER_ID, description="Mareo")
+    _wire(app, repo)
+    try:
+        response = await client.patch(
+            f"/api/v1/symptoms/{symptom.id}", json={"description": "Nausea"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()["description"] == "Nausea"
+
+
+async def test_patch_symptom_404_for_other_owner(app, client):
+    repo = _FakeSymptomRepoWithOwner()
+    foreign = _seed(repo, uuid.uuid4(), description="Dolor ajeno")
+    _wire(app, repo)
+    try:
+        response = await client.patch(
+            f"/api/v1/symptoms/{foreign.id}", json={"description": "Hackeado"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 404
+
+
+# --- DELETE tests ---
+
+async def test_delete_symptom_204_then_404(app, client):
+    repo = _FakeSymptomRepoWithOwner()
+    symptom = _seed(repo, _USER_ID)
+    _wire(app, repo)
+    try:
+        first = await client.delete(f"/api/v1/symptoms/{symptom.id}")
+        second = await client.delete(f"/api/v1/symptoms/{symptom.id}")
+    finally:
+        app.dependency_overrides.clear()
+    assert first.status_code == 204
+    assert second.status_code == 404
+
+
+async def test_delete_symptom_404_for_other_owner(app, client):
+    repo = _FakeSymptomRepoWithOwner()
+    foreign = _seed(repo, uuid.uuid4())
+    _wire(app, repo)
+    try:
+        response = await client.delete(f"/api/v1/symptoms/{foreign.id}")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 404
