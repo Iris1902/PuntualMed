@@ -1,4 +1,7 @@
+import uuid
+
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.provider import AIProvider, GLMProvider
@@ -12,6 +15,14 @@ from app.meds.repository import MedicationRepository
 from app.symptoms.repository import SymptomRepository
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+
+class AnalyzeRequest(BaseModel):
+    symptom_id: uuid.UUID | None = None
+
+
+# Valor por defecto a nivel de modulo para evitar B008 (llamada en default de argumento)
+_DEFAULT_ANALYZE_REQUEST = AnalyzeRequest()
 
 
 def get_ai_provider() -> AIProvider:
@@ -32,8 +43,9 @@ def get_ai_service(
 
 @router.post("/symptoms/analyze", response_model=AiMessageRead)
 async def analyze_symptoms(
+    data: AnalyzeRequest = _DEFAULT_ANALYZE_REQUEST,
     current: CurrentUser = Depends(get_current_user),
     service: AiService = Depends(get_ai_service),
 ) -> AiMessageRead:
-    message = await service.analyze_symptoms(current.id)
+    message = await service.analyze_symptoms(current.id, data.symptom_id)
     return AiMessageRead.model_validate(message)

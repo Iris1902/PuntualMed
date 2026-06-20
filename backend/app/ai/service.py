@@ -22,8 +22,14 @@ class AiService:
         self._symptom_repository = symptom_repository
         self._medication_repository = medication_repository
 
-    async def analyze_symptoms(self, user_id: uuid.UUID) -> AiMessage:
-        symptoms = await self._symptom_repository.list_by_user(user_id)
+    async def analyze_symptoms(
+        self, user_id: uuid.UUID, symptom_id: uuid.UUID | None = None
+    ) -> AiMessage:
+        if symptom_id is not None:
+            one = await self._symptom_repository.get_for_user(symptom_id, user_id)
+            symptoms = [one] if one is not None else []
+        else:
+            symptoms = await self._symptom_repository.list_by_user(user_id)
         medications = await self._medication_repository.list_by_user(user_id)
         symptom_dicts = [
             {
