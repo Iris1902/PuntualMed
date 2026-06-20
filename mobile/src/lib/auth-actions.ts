@@ -25,3 +25,15 @@ export async function signUp(
   if (error) return { error: error.message, needsConfirmation: false };
   return { error: null, needsConfirmation: !data.session };
 }
+
+export async function requestPasswordReset(email: string): Promise<ActionResult> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: AUTH_REDIRECT,
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function updatePassword(password: string): Promise<ActionResult> {
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error?.message ?? null };
+}
