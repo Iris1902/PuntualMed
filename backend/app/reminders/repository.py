@@ -50,6 +50,19 @@ class IntakeRepository:
         result = await self._session.execute(query.order_by(IntakeLog.scheduled_at))
         return list(result.scalars().all())
 
+    async def list_unalerted_missed(self) -> list[IntakeLog]:
+        # Devuelve las tomas vencidas que aun no fueron notificadas a los familiares.
+        result = await self._session.execute(
+            select(IntakeLog)
+            .where(IntakeLog.status == "missed", IntakeLog.alert_sent.is_(False))
+            .order_by(IntakeLog.scheduled_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def mark_alerted(self, intake: IntakeLog) -> None:
+        intake.alert_sent = True
+        await self._session.flush()
+
     async def mark_missed_before(self, cutoff: datetime) -> int:
         # Marca como vencidas las tomas pendientes cuya hora ya paso el margen de gracia.
         result = await self._session.execute(
