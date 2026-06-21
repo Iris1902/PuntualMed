@@ -66,7 +66,7 @@ class NotificationService:
         record.used = True
         await self._telegram.send_message(
             str(chat.get("id")),
-            "Vinculado. Recibiras un aviso si no se confirma una toma.",
+            "Vinculado. Recibirás un aviso si no se confirma una toma.",
         )
         return True
 

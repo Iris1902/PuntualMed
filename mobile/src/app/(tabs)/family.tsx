@@ -40,8 +40,9 @@ function ContactRow({ contact, onUnlink }: { contact: FamilyContact; onUnlink: (
 function LinkSection({ link }: { link: FamilyLink }) {
   const { deep_link } = link;
 
-  async function share() {
-    await Share.share({ message: deep_link });
+  function share() {
+    // Ignora el rechazo si el usuario cancela la hoja de compartir.
+    Share.share({ message: deep_link }).catch(() => {});
   }
 
   return (
