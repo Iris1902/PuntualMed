@@ -109,7 +109,7 @@ export default function SymptomDetail() {
           {deleteError ? <Text className="text-center text-danger">{deleteError}</Text> : null}
           {confirming ? (
             <View className="gap-2">
-              <Text className="text-center text-danger">Eliminar este sintoma?</Text>
+              <Text className="text-center text-danger">¿Eliminar este síntoma?</Text>
               <Button label="Confirmar" onPress={onDelete} />
               <Button label="Cancelar" variant="secondary" onPress={() => setConfirming(false)} />
             </View>
