@@ -50,6 +50,7 @@ export default function MedicationDetail() {
             )}
           </Card>
           {deleteError ? <Text className="text-center text-danger">{deleteError}</Text> : null}
+          <Button label="Editar" onPress={() => router.push({ pathname: "/edit-medication", params: { id } })} />
           {confirming ? (
             <View className="gap-2">
               <Text className="text-center text-danger">Eliminar este medicamento?</Text>
