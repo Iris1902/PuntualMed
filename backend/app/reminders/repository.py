@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.reminders.models import IntakeLog
@@ -49,3 +49,13 @@ class IntakeRepository:
             query = query.where(IntakeLog.status == status)
         result = await self._session.execute(query.order_by(IntakeLog.scheduled_at))
         return list(result.scalars().all())
+
+    async def mark_missed_before(self, cutoff: datetime) -> int:
+        # Marca como vencidas las tomas pendientes cuya hora ya paso el margen de gracia.
+        result = await self._session.execute(
+            update(IntakeLog)
+            .where(IntakeLog.status == "pending", IntakeLog.scheduled_at < cutoff)
+            .values(status="missed")
+            .execution_options(synchronize_session=False)
+        )
+        return result.rowcount or 0
