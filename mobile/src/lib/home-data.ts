@@ -4,9 +4,10 @@ import type { Medication } from "@/lib/meds-api";
 type DoseStatus = "taken" | "missed" | "pending";
 type DoseRow = { id: string; name: string; dose: string; time: string; status: DoseStatus };
 
-// "missed" se deriva: pendiente y ya vencida (no hay worker que lo persista).
+// "missed" se deriva: pendiente y ya vencida, o cuando el backend ya lo persistió.
 function doseStatus(intake: Intake, now: Date): DoseStatus {
   if (intake.status === "taken") return "taken";
+  if (intake.status === "missed") return "missed";
   if (new Date(intake.scheduled_at) < now) return "missed";
   return "pending";
 }

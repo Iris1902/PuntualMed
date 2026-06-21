@@ -14,9 +14,10 @@ export function dayKey(iso: string): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
-// "missed" se deriva: pendiente y ya vencida (no hay worker que lo persista).
+// "missed" se deriva: pendiente y ya vencida, o cuando el backend ya lo persistió.
 export function effectiveStatus(intake: Intake, now: Date): EffectiveStatus {
   if (intake.status === "taken") return "taken";
+  if (intake.status === "missed") return "missed";
   if (intake.status === "pending" && new Date(intake.scheduled_at) < now) return "missed";
   return "pending";
 }

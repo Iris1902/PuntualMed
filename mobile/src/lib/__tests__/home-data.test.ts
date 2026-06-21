@@ -101,4 +101,14 @@ describe("todaysMeds", () => {
     expect(rows.map((r) => r.id)).toEqual(["early", "late"]);
     expect(rows[0]).toMatchObject({ name: "Losartan", dose: "50mg", status: "pending" });
   });
+
+  it("returns missed when the intake status is already missed", () => {
+    const now = new Date("2026-06-20T12:00:00Z");
+    const rows = todaysMeds(
+      [intake({ id: "missed-dose", scheduled_at: "2026-06-20T13:00:00Z", status: "missed" })],
+      meds,
+      now,
+    );
+    expect(rows[0]).toMatchObject({ status: "missed" });
+  });
 });

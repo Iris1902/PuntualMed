@@ -24,6 +24,10 @@ describe("effectiveStatus", () => {
   it("is pending when not yet due", () => {
     expect(effectiveStatus(intake({ scheduled_at: "2026-06-20T20:00:00Z" }), now)).toBe("pending");
   });
+  it("returns missed when the backend already persisted missed", () => {
+    const testIntake = { status: "missed", scheduled_at: "2999-01-01T00:00:00Z" } as never;
+    expect(effectiveStatus(testIntake, now)).toBe("missed");
+  });
 });
 
 describe("daysInMonth", () => {
