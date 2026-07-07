@@ -20,6 +20,13 @@ async def test_run_missed_job_runs_service_and_commits(monkeypatch) -> None:
     service = AsyncMock(return_value=3)
     monkeypatch.setattr(main, "mark_missed_intakes", service)
 
+    # Aisla la config del .env real: sin token, no se toma el camino de alertas.
+    class _FakeSettings:
+        missed_grace_minutes = 60
+        telegram_bot_token = None
+
+    monkeypatch.setattr(main, "get_settings", lambda: _FakeSettings())
+
     await main.run_missed_job()
 
     assert committed["value"] is True
