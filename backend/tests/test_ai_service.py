@@ -1,4 +1,7 @@
 import uuid
+from io import BytesIO
+
+from PIL import Image, ImageDraw
 
 from app.ai.models import AiMessage
 from app.ai.provider import DISCLAIMER
@@ -97,3 +100,19 @@ async def test_analyze_does_not_duplicate_disclaimer():
     message = await service.analyze_symptoms(user_id)
 
     assert message.content.count(DISCLAIMER) == 1
+
+
+async def test_extract_medications_from_image_uses_ocr_text():
+    user_id = uuid.uuid4()
+    img = Image.new("RGB", (200, 80), color="white")
+    draw = ImageDraw.Draw(img)
+    draw.text((10, 10), "Amoxicilina 500 mg\nParacetamol 650 mg", fill="black")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    service = AiService(None, _FakeAiRepo(), _FakeSymptomRepo(), _FakeMedRepo())
+
+    extracted = await service.extract_medications_from_image(user_id, "recipe.png", buffer.getvalue())
+
+    assert extracted[0]["dose"] == "500 mg"
+    assert extracted[1]["dose"] in {"650 mg", "850 mg"}
+    assert extracted[0]["name"] or extracted[1]["name"]
