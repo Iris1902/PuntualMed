@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.provider import AIProvider, GLMProvider
+from app.ai.provider import AIProvider, GeminiProvider, GLMProvider
 from app.ai.repository import AiMessageRepository
 from app.ai.schemas import AiMessageRead
 from app.ai.service import AiService
@@ -26,7 +26,10 @@ _DEFAULT_ANALYZE_REQUEST = AnalyzeRequest()
 
 
 def get_ai_provider() -> AIProvider:
-    return GLMProvider(get_settings().zhipu_api_key)
+    settings = get_settings()
+    if settings.gemini_api_key:
+        return GeminiProvider(settings.gemini_api_key)
+    return GLMProvider(settings.zhipu_api_key)
 
 
 def get_ai_service(
