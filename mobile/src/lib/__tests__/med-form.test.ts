@@ -1,4 +1,4 @@
-import { buildDose, FREQUENCIES, parseTimes, toInput, UNITS, validateMedForm } from "../med-form";
+import { buildDose, FREQUENCIES, parseTimes, recipeToForm, toInput, UNITS, validateMedForm } from "../med-form";
 
 const valid = {
   name: "Losartan",
@@ -59,5 +59,29 @@ describe("toInput", () => {
 describe("parseTimes", () => {
   it("still trims and drops blanks (kept for reuse)", () => {
     expect(parseTimes(" 09:00 , , 21:00 ")).toEqual(["09:00", "21:00"]);
+  });
+});
+
+describe("recipeToForm", () => {
+  it("maps a parsed prescription into the add-medication form", () => {
+    expect(
+      recipeToForm({
+        name: "Amoxicilina",
+        dose: "500 mg",
+        start_date: "2026-01-01",
+        duration_days: 7,
+        frequency_hours: 24,
+        schedules: ["09:00"],
+        notes: "Tomar con comida",
+      }),
+    ).toEqual({
+      name: "Amoxicilina",
+      amount: "500",
+      unit: "mg",
+      startDate: "2026-01-01",
+      durationDays: "7",
+      times: ["09:00"],
+      notes: "Tomar con comida",
+    });
   });
 });

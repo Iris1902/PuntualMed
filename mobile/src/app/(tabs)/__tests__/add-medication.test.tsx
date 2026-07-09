@@ -4,6 +4,11 @@ import { createMedication } from "@/lib/meds-api";
 
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: () => ({ back: () => mockBack() }) }));
+jest.mock("expo-image-picker", () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+  launchImageLibraryAsync: jest.fn().mockResolvedValue({ canceled: true }),
+  MediaTypeOptions: { Images: "Images" },
+}));
 jest.mock("@/lib/meds-api", () => ({ createMedication: jest.fn().mockResolvedValue({ id: "m9" }) }));
 
 describe("AddMedication", () => {
