@@ -52,3 +52,34 @@ export function toInput(form: MedForm): MedicationInput {
     schedules: form.times.map((t) => ({ time_of_day: t })),
   };
 }
+
+export function recipeToForm(recipe: {
+  name?: string | null;
+  dose?: string | null;
+  start_date?: string | null;
+  duration_days?: number | null;
+  frequency_hours?: number | null;
+  schedules?: Array<string | { time_of_day?: string | null }> | null;
+  notes?: string | null;
+}): MedForm {
+  const amount = (recipe.dose ?? "").trim().split(/\s+/)[0] ?? "";
+  const unit = (recipe.dose ?? "").trim().split(/\s+/).slice(1).join(" ") || "mg";
+  const times = (recipe.schedules ?? [])
+    .map((entry) => (typeof entry === "string" ? entry : entry?.time_of_day ?? ""))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return {
+    name: recipe.name?.trim() ?? "",
+    amount,
+    unit: UNITS.includes(unit as (typeof UNITS)[number]) ? unit : "mg",
+    startDate: recipe.start_date ?? todayIso(),
+    durationDays: String(recipe.duration_days ?? 7),
+    times,
+    notes: recipe.notes?.trim() ?? "",
+  };
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
