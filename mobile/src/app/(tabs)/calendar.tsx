@@ -51,6 +51,12 @@ export default function Calendar() {
     symptoms: Object.values(statuses).filter(s => s?.symptom).length,
   };
 
+  // Cálculo del offset del primer día del mes (Alineado a Lunes como primer día de la semana)
+  const firstDayOfMonth = new Date(year, month0, 1).getDay();
+  // En JS: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado. 
+  // Queremos adaptarlo para que: Lunes = 0, Martes = 1, ..., Domingo = 6.
+  const emptyDaysCount = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
   return (
     <ScrollView className="flex-1 bg-[#F3F4F6]" contentContainerClassName="gap-4 pb-10">
       
@@ -92,6 +98,12 @@ export default function Calendar() {
 
           {/* Rejilla del Calendario */}
           <View className="flex-row flex-wrap">
+            {/* 1. Renderizamos los espacios vacíos del inicio del mes para alinearlo correctamente */}
+            {Array.from({ length: emptyDaysCount }).map((_, idx) => (
+              <View key={`empty-${idx}`} className="h-[54px] w-[14.28%]" />
+            ))}
+
+            {/* 2. Días reales del mes */}
             {daysInMonth(year, month0).map((d) => {
               const key = `${year}-${pad(month0 + 1)}-${pad(d)}`;
               const f = statuses[key];
@@ -122,7 +134,7 @@ export default function Calendar() {
                 >
                   <Text className={textClass}>{d}</Text>
                   
-                  {/* Indicadores de estado inferiores corregidos nativamente */}
+                  {/* Indicadores de estado inferiores */}
                   <View className="flex-row gap-0.5 h-1.5 items-center justify-center">
                     {f?.taken ? <View className="h-1.5 w-1.5 rounded-full bg-[#34D399]" /> : null}
                     {f?.missed ? <View className="h-1.5 w-1.5 rounded-full bg-[#EF4444]" /> : null}
