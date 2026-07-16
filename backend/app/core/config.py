@@ -1,15 +1,20 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ASYNC_DRIVER_PREFIX = "postgresql+asyncpg://"
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_REPO_ROOT = _BACKEND_DIR.parent
 
 
 class Settings(BaseSettings):
     # Configuracion unica de la app, cargada desde variables de entorno
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=(_BACKEND_DIR / ".env", _REPO_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     app_name: str = "PuntualMed"
