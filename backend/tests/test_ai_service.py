@@ -1,5 +1,6 @@
 import uuid
 from io import BytesIO
+from types import SimpleNamespace
 
 from PIL import Image, ImageDraw
 
@@ -102,13 +103,20 @@ async def test_analyze_does_not_duplicate_disclaimer():
     assert message.content.count(DISCLAIMER) == 1
 
 
-async def test_extract_medications_from_image_uses_ocr_text():
+async def test_extract_medications_from_image_uses_ocr_text(monkeypatch):
     user_id = uuid.uuid4()
     img = Image.new("RGB", (200, 80), color="white")
     draw = ImageDraw.Draw(img)
     draw.text((10, 10), "Amoxicilina 500 mg\nParacetamol 650 mg", fill="black")
     buffer = BytesIO()
     img.save(buffer, format="PNG")
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "pytesseract",
+        SimpleNamespace(
+            image_to_string=lambda image: "Amoxicilina 500 mg\nParacetamol 650 mg"
+        ),
+    )
     service = AiService(None, _FakeAiRepo(), _FakeSymptomRepo(), _FakeMedRepo())
 
     extracted = await service.extract_medications_from_image(user_id, "recipe.png", buffer.getvalue())

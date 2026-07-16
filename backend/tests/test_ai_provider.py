@@ -71,7 +71,7 @@ async def test_gemini_provider_sends_model_and_parses_response():
     )
 
     assert result == "Posible causa: deshidratacion."
-    assert "models/gemini-1.5-flash:generateContent" in captured["url"]
+    assert "models/gemini-2.5-flash:generateContent" in captured["url"]
     assert "test-key" in captured["url"]
     assert "mareo" in captured["body"]
 
@@ -101,3 +101,30 @@ async def test_gemini_provider_extracts_medication_payload_from_image():
     assert result[0]["name"] == "Amoxicilina"
     assert result[0]["frequency_hours"] == 24
     assert result[0]["schedules"] == ["09:00"]
+
+
+async def test_gemini_provider_extracts_wrapped_medication_payload_from_image():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": '{"medications": [{"name": "Amoxicilina", "dose": "500 mg", "start_date": "2026-01-01", "duration_days": 7, "frequency_hours": 24, "schedules": ["09:00"], "notes": "Tomar cada día"}]}'
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    provider = GeminiProvider(api_key="test-key", transport=httpx.MockTransport(handler))
+    result = await provider.extract_medications_from_image("recipe.png", b"fake-image")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Amoxicilina"
+    assert result[0]["dose"] == "500 mg"
