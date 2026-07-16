@@ -1,7 +1,4 @@
-import re
-import unicodedata
 import uuid
-from io import BytesIO
 from typing import Any
 
 from app.ai.models import AiMessage
@@ -35,6 +32,7 @@ class AiService:
         else:
             symptoms = await self._symptom_repository.list_by_user(user_id)
         medications = await self._medication_repository.list_by_user(user_id)
+        
         symptom_dicts = [
             {
                 "description": s.description,
@@ -44,8 +42,10 @@ class AiService:
             for s in symptoms
         ]
         med_dicts = [{"name": m.name, "dose": m.dose} for m in medications]
+        
         content = await self._provider.analyze_symptoms(symptom_dicts, med_dicts)
         content = self._ensure_disclaimer(content)
+        
         message = AiMessage(
             id=uuid.uuid4(),
             user_id=user_id,
@@ -62,71 +62,34 @@ class AiService:
         image_bytes: bytes,
     ) -> list[dict[str, Any]]:
         _ = user_id
+        
+        # Validamos que el proveedor exista y tenga la capacidad de extraer de imágenes
+        if self._provider is None or not hasattr(self._provider, "extract_medications_from_image"):
+            return []
+
         try:
-            if self._provider is not None and hasattr(
-                self._provider, "extract_medications_from_image"
-            ):
-                extracted = await self._provider.extract_medications_from_image(
-                    filename, image_bytes
-                )
-                normalized = self._normalize_prescription_output(extracted)
-                if normalized:
-                    return normalized
-        except Exception:
+            # Delegamos el trabajo de extracción al proveedor de IA
+            extracted = await self._provider.extract_medications_from_image(
+                filename, image_bytes
+            )
+            
+            # Normalizamos la respuesta para garantizar que la estructura sea la esperada
+            normalized = self._normalize_prescription_output(extracted)
+            
+            if normalized:
+                return normalized
+                
+        except Exception as e:
+            # Si el proveedor de IA falla (ej. error de red, token inválido),
+            # devolvemos una lista vacía para que el frontend maneje el error
+            # mostrando un mensaje al usuario.
+            import httpx
+            if isinstance(e, httpx.HTTPStatusError):
+                print(f"\n❌ CHISME COMPLETO DE DEEPSEEK: {e.response.text}\n")
+            else:
+                print(f"\n❌ ERROR FATAL DE IA: {str(e)}\n")
             pass
-
-        try:
-            from PIL import Image
-            import pytesseract
-        except ImportError:
-            return []
-
-        try:
-            with Image.open(BytesIO(image_bytes)) as image:
-                text = pytesseract.image_to_string(image).strip()
-        except Exception:
-            return []
-
-        if not text:
-            return []
-
-        text = unicodedata.normalize("NFKC", text)
-        text = text.replace("“", '"').replace("”", '"').replace("’", "'")
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
-
-        medications: list[dict[str, Any]] = []
-        for raw_line in text.splitlines():
-            line = re.sub(r"\s+", " ", raw_line).strip()
-            if not line:
-                continue
-
-            line = line.strip("'\"“”‘’.,:;()[]{}")
-            match = re.search(
-                r"(?P<name>.*?)(?P<dose>\d+(?:[.,]\d+)?\s*(?:mg|g|mcg|ml|tablet|tabletas|capsula|caps|gotas|spray))",
-                line,
-                re.IGNORECASE,
-            )
-            if match:
-                name = match.group("name").strip(" -")
-                dose = match.group("dose").strip()
-                if name:
-                    medications.append(
-                        {
-                            "name": name,
-                            "dose": dose,
-                            "notes": "Extraído de la receta",
-                        }
-                    )
-                    continue
-
-            medications.append(
-                {
-                    "name": line,
-                    "dose": "",
-                    "notes": "Extraído de la receta",
-                }
-            )
-        return medications
+        return []
 
     @staticmethod
     def _normalize_prescription_output(items: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
