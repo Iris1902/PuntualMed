@@ -15,6 +15,10 @@ class ScheduleRead(BaseModel):
     time_of_day: time
 
 
+class ScheduleRecalculate(BaseModel):
+    new_start_time: time
+
+
 class MedicationCreate(BaseModel):
     name: str
     dose: str
