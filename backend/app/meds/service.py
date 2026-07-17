@@ -103,3 +103,44 @@ class MedicationService:
         medication.schedules.append(schedule)
         await self._repository.add(medication)
         return schedule
+
+    async def recalculate_schedules(
+        self, user_id: uuid.UUID, medication_id: uuid.UUID, new_start_time: time
+    ) -> list[MedicationSchedule] | None:
+        medication = await self._repository.get_for_user(medication_id, user_id)
+        if medication is None:
+            return None
+
+        # Limpiamos horarios anteriores
+        medication.schedules = []
+        
+        # Calculamos nuevos horarios basados en la frecuencia
+        interval = medication.frequency_hours
+        # Si la frecuencia es 0 o menor, evitamos bucles infinitos
+        if interval <= 0:
+            interval = 24
+
+        # Calculamos cuántas tomas caben en un ciclo de 24h
+        num_doses = 24 // interval
+        
+        new_schedules = []
+        current_hour = new_start_time.hour
+        current_minute = new_start_time.minute
+        
+        for i in range(num_doses):
+            # Calculamos la hora sumando el intervalo
+            total_minutes = (current_hour * 60 + current_minute + (i * interval * 60)) % 1440
+            h = total_minutes // 60
+            m = total_minutes % 60
+            
+            new_schedules.append(
+                MedicationSchedule(
+                    id=uuid.uuid4(),
+                    medication_id=medication.id,
+                    time_of_day=time(h, m)
+                )
+            )
+            
+        medication.schedules = new_schedules
+        await self._repository.add(medication)
+        return new_schedules
