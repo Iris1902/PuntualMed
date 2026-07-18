@@ -47,7 +47,6 @@ class GeminiProvider:
             "generationConfig": {"temperature": 0.2},
         }
         async with httpx.AsyncClient(transport=self._transport, timeout=30.0) as client:
-            # Usamos el modelo principal que sabemos que funciona
             response = await client.post(
                 f"{_GEMINI_ENDPOINT}?key={self._api_key}",
                 json=payload,
@@ -73,16 +72,20 @@ class GeminiProvider:
             "Analiza esta receta médica y extrae los medicamentos en un array JSON. "
             "Para cada medicamento, usa este esquema exacto: "
             "{"
-            "'name': string, 'dose': string (cantidad + unidad, ej: '500 mg'), "
-            "'start_date': 'YYYY-MM-DD', 'duration_days': integer, "
-            "'frequency_hours': integer o null, "
-            "'schedules': array de objetos {'time_of_day': 'HH:MM:SS'}, 'notes': string"
+            "'name': string, 'dose': string, 'start_date': 'YYYY-MM-DD', 'duration_days': integer, "
+            "'frequency_hours': integer o null, 'schedules': array de objetos {'time_of_day': 'HH:MM:SS'}, "
+            "'notes': string, 'tags': array de strings ['AYUNAS', 'SEPARADO', 'COMIDA']"
             "}. "
-            "REGLAS: "
-            "1. 'start_date' debe ser formato ISO (YYYY-MM-DD). Usa la fecha actual si no hay fecha. "
-            "2. 'duration_days' y 'frequency_hours' deben ser números. REGLA ESTRICTA: Si la receta NO indica explícitamente cada cuántas horas se debe tomar el medicamento, 'frequency_hours' DEBE ser estrictamente null. NUNCA inventes o asumas una frecuencia por defecto. "
-            "3. Si 'schedules' no se puede inferir, usa una lista vacía []. "
-            "4. Devuelve SOLO el array JSON, sin formato markdown, sin prefijos, sin explicaciones. "
+            "REGLAS DE SEGURIDAD: "
+            "1. PRIORIDAD: Busca siempre la sección 'Indicaciones'. Si ahí se menciona una hora (ej: 03:00 a.m., 7 a.m.), debes extraerla obligatoriamente en 'schedules'. "      
+            "1. Analiza el nombre y las notas: Si la receta indica 'en ayunas', agrega 'AYUNAS' a 'tags'. "
+            "Si indica 'alejado de comidas', 'separado de otros medicamentos' o 'tomar solo', agrega 'SEPARADO'. "
+            "Si indica 'con alimentos' o 'después de comer', agrega 'COMIDA'. Si no hay restricciones, el array de tags debe estar vacío []. "
+            "REGLAS GENERALES: "
+            "2. 'start_date' debe ser formato ISO (YYYY-MM-DD). Usa la fecha actual si no hay fecha. "
+            "3. 'duration_days' y 'frequency_hours' deben ser números. Si no es explícito, 'frequency_hours' DEBE ser null. "
+            "4. Si 'schedules' no se puede inferir, usa una lista vacía []. "
+            "5. Devuelve SOLO el array JSON, sin formato markdown, sin prefijos."
         )
         payload = {
             "contents": [
@@ -104,7 +107,6 @@ class GeminiProvider:
             },
         }
         async with httpx.AsyncClient(transport=self._transport, timeout=30.0) as client:
-            # Usamos el modelo principal que sabemos que funciona
             response = await client.post(
                 f"{_GEMINI_ENDPOINT}?key={self._api_key}",
                 json=payload,

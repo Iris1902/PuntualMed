@@ -105,6 +105,7 @@ class AiService:
                     "frequency_hours": item.get("frequency_hours"),
                     "schedules": schedules,
                     "notes": item.get("notes"),
+                    "tags": item.get("tags") or [],  # Capturamos las tags extraídas por la IA
                 }
             )
         return normalized
