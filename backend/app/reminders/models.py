@@ -27,6 +27,8 @@ class IntakeLog(Base):
     photo_url: Mapped[str | None] = mapped_column(String)
     # Reservado para la alerta familiar del worker diferido (idempotencia).
     alert_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Bandera para saber si ya se envió la notificación push al paciente.
+    notified_user: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
