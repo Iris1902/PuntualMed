@@ -50,6 +50,25 @@ class IntakeRepository:
         result = await self._session.execute(query.order_by(IntakeLog.scheduled_at))
         return list(result.scalars().all())
 
+    # --- NUEVOS MÉTODOS PARA NOTIFICACIONES PUSH (USUARIO) ---
+    async def list_pending_due_now(self, now: datetime) -> list[IntakeLog]:
+        # Devuelve tomas pendientes que ya llegaron a su hora, pero el usuario no ha sido notificado
+        result = await self._session.execute(
+            select(IntakeLog)
+            .where(
+                IntakeLog.status == "pending",
+                IntakeLog.scheduled_at <= now,
+                IntakeLog.notified_user.is_(False)
+            )
+            .order_by(IntakeLog.scheduled_at)
+        )
+        return list(result.scalars().all())
+        
+    async def mark_user_notified(self, intake: IntakeLog) -> None:
+        intake.notified_user = True
+        await self._session.flush()
+
+    # --- MÉTODOS EXISTENTES (ALERTAS FAMILIARES) ---
     async def list_unalerted_missed(self) -> list[IntakeLog]:
         # Devuelve las tomas vencidas que aun no fueron notificadas a los familiares.
         result = await self._session.execute(
