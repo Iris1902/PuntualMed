@@ -56,7 +56,11 @@ export default function Home() {
   const router = useRouter();
   const { session } = useAuth();
   const { data, error, loading, reload } = useAsync(loadHome);
-  const greetName = data?.me.full_name ?? session?.user?.email ?? "Usuario";
+
+  // Obtiene el nombre del usuario prioritariamente desde fetchMe() (full_name o name).
+  // Si no existe o está vacío, usa el email o "Usuario".
+  const userFullName = data?.me?.full_name?.trim() || data?.me?.name?.trim();
+  const greetName = userFullName || session?.user?.email || "Usuario";
 
   useFocusEffect(
     useCallback(() => {
