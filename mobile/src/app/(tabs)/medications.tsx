@@ -115,7 +115,7 @@ export default function Medications() {
       <View className="bg-white flex-row items-center justify-between px-6 py-4 border-b border-gray-100 pt-3">
         <View className="flex-1 items-center justify-center pl-6">
           <Text className="text-[#1E293B] font-bold text-lg text-center">Mis medicamentos
-
+            
           </Text>
         </View>
         <Pressable 
@@ -142,7 +142,7 @@ export default function Medications() {
               <Text className={`font-semibold text-sm ${
                 isActive ? 'text-white' : 'text-[#6B7280]'
               }`}>
-                {f === 'all' ? 'MEDICAMENTOS' : f === 'active' ? 'Activos' : 'Completados'}
+                {f === 'all' ? 'Todos' : f === 'active' ? 'Activos' : 'Completados'}
               </Text>
             </Pressable>
           );
