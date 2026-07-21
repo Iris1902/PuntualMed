@@ -142,10 +142,10 @@ export default function MonthlyCalendar({
 
       <View className="flex-row justify-between mb-4">
 
-        {weekDays.map(day => (
+        {weekDays.map((day, index) => (
 
           <Text
-            key={day}
+            key={`${day}-${index}`}
             className="w-10 text-center text-slate-500 font-semibold"
           >
             {day}
