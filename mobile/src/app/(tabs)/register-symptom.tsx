@@ -30,10 +30,7 @@ export default function RegisterSymptom() {
     try {
       await createSymptom(toSymptomInput(form));
       router.back();
-    } catch (err) {
-      // Impresión en la terminal para identificar el error real del backend
-      console.error("ERROR REAL AL GUARDAR SÍNTOMA:", err);
-      
+    } catch {
       setError("No se pudo guardar");
       setSaving(false);
     }
