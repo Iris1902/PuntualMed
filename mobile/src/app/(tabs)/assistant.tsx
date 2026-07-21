@@ -17,6 +17,10 @@ interface ChatMessage {
   timestamp: string;
 }
 
+// Función auxiliar para obtener la hora actual en formato local (ej: "8:41 AM")
+const getCurrentFormattedTime = () =>
+  new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
 export default function Assistant() {
   const router = useRouter();
   const { session } = useAuth();
@@ -32,7 +36,7 @@ export default function Assistant() {
       id: "welcome",
       sender: "ai",
       text: `Hola ${firstName}, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.`,
-      timestamp: "8:41 AM",
+      timestamp: getCurrentFormattedTime(),
     },
   ]);
 
@@ -52,6 +56,7 @@ export default function Assistant() {
             ? {
                 ...msg,
                 text: `Hola ${updatedFirstName}, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.`,
+                timestamp: msg.timestamp || getCurrentFormattedTime(),
               }
             : msg
         )
@@ -85,7 +90,7 @@ export default function Assistant() {
       id: `user-${Date.now()}`,
       sender: "user",
       text: userQuery,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: getCurrentFormattedTime(),
     };
 
     setChatMessages((prev) => [...prev, userMsg]);
@@ -100,7 +105,7 @@ export default function Assistant() {
         id: response.id || `ai-${Date.now()}`,
         sender: "ai",
         text: response.content,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: getCurrentFormattedTime(),
       };
       setChatMessages((prev) => [...prev, aiMsg]);
     } catch {
