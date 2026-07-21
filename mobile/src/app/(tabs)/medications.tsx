@@ -114,7 +114,7 @@ export default function Medications() {
       {/* Header Superior */}
       <View className="bg-white flex-row items-center justify-between px-6 py-4 border-b border-gray-100 pt-3">
         <View className="flex-1 items-center justify-center pl-6">
-          <Text className="text-[#1E293B] font-bold text-lg text-center">Mis medicamentos</Text>
+          <Text className="text-[#1E293B] font-bold text-lg text-center">Mis MDICINAS</Text>
         </View>
         <Pressable 
           accessibilityRole="button" 
