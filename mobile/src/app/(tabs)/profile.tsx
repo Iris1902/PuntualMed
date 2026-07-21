@@ -20,13 +20,15 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Precarga el nombre actual cuando llega el perfil.
   useEffect(() => {
     if (data?.full_name) setName(data.full_name);
   }, [data]);
 
-  // Función guardar nombre corregida con control de errores robusto
+  // Función guardar nombre
   async function saveName() {
     if (!name.trim()) {
       setNotice("El nombre no puede estar vacío");
@@ -34,24 +36,36 @@ export default function Profile() {
     }
     
     try {
-      setNotice("Guardando...");
+      setSavingName(true);
+      setNotice("Guardando nombre...");
       await updateProfile({ full_name: name.trim() });
-      await reload(); // Fuerza a que la app pida los nuevos datos al servidor
+      await reload(); // Fuerza a pedir los nuevos datos al servidor
       setNotice("Nombre actualizado con éxito");
-    } catch (error: any) {
+    } catch (error) {
       setNotice("Error al guardar el nombre");
       console.error(error);
+    } finally {
+      setSavingName(false);
     }
   }
 
+  // Función guardar contraseña
   async function savePassword() {
+    if (!password.trim()) {
+      setNotice("Ingresa una contraseña válida");
+      return;
+    }
+
     try {
+      setSavingPassword(true);
       const result = await updatePassword(password);
       setNotice(result.error ?? "Contraseña actualizada");
       if (!result.error) setPassword("");
     } catch (error) {
       setNotice("Error al guardar la contraseña");
       console.error(error);
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -70,13 +84,27 @@ export default function Profile() {
       <Card className="gap-2">
         <Text className="font-semibold text-primary">Nombre</Text>
         <Input value={name} onChangeText={setName} placeholder="Tu nombre" />
-        <Button label="Guardar nombre" onPress={saveName} />
+        <Button 
+          label={savingName ? "Guardando..." : "Guardar nombre"} 
+          onPress={saveName} 
+          disabled={savingName} 
+        />
       </Card>
 
       <Card className="gap-2">
         <Text className="font-semibold text-primary">Cambiar contraseña</Text>
-        <Input value={password} onChangeText={setPassword} placeholder="Nueva contraseña" secureTextEntry />
-        <Button label="Guardar contraseña" variant="secondary" onPress={savePassword} />
+        <Input 
+          value={password} 
+          onChangeText={setPassword} 
+          placeholder="Nueva contraseña" 
+          secureTextEntry 
+        />
+        <Button 
+          label={savingPassword ? "Guardando..." : "Guardar contraseña"} 
+          variant="secondary" 
+          onPress={savePassword} 
+          disabled={savingPassword} 
+        />
       </Card>
 
       {notice ? <Text className="text-center font-sans text-muted">{notice}</Text> : null}
