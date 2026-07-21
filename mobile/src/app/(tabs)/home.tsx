@@ -254,8 +254,8 @@ export default function Home() {
                 <Bot size={22} className="text-[#38BDF8]" />
               </View>
               <View>
-                <Text className="text-[#1E293B] font-semibold text-sm">Consultar con</Text>
-                <Text className="text-[#1E293B] font-semibold text-sm">agente de ia</Text>
+                <Text className="text-[#1E293B] font-semibold text-sm">Consultar</Text>
+                <Text className="text-[#1E293B] font-semibold text-sm">IA</Text>
               </View>
             </Pressable>
           </View>
