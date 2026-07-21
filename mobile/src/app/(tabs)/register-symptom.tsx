@@ -50,7 +50,9 @@ export default function RegisterSymptom() {
             onPress={() => setSeverity(level)}
             className={`rounded px-3 py-2 ${severity === level ? "bg-primary" : "bg-surface"}`}
           >
-            <Text className={severity === level ? "text-white" : "text-primary"}>{level}</Text>
+            <Text className={`capitalize ${severity === level ? "text-white" : "text-primary"}`}>
+              {level}
+            </Text>
           </Pressable>
         ))}
       </View>
