@@ -4,8 +4,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { analyzeSymptoms, type AiMessage } from "@/lib/ai-api";
 import { listSymptoms } from "@/lib/symptoms-api";
 import { useAsync } from "@/lib/use-async";
-import { fetchMe } from "@/lib/users-api";
-import { useAuth } from "@/lib/auth";
 
 // Importación de la imagen del robot según la estructura de tu proyecto
 import robotImg from "@/assets/images/imagen-2.png";
@@ -19,12 +17,16 @@ interface ChatMessage {
 
 export default function Assistant() {
   const router = useRouter();
-  const { session } = useAuth();
-  const { data: me } = useAsync(fetchMe);
-  const displayName = me?.full_name ?? session?.user?.email ?? "Usuario";
   const { data: symptoms, reload } = useAsync(listSymptoms);
   
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      sender: "ai",
+      text: "Hola María, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.",
+      timestamp: "8:41 AM",
+    }
+  ]);
   
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,6 @@ export default function Assistant() {
     setError(null);
 
     try {
-      // Petición al endpoint del backend (/api/ai/symptoms/analyze)
       const response: AiMessage = await analyzeSymptoms(symptomId);
       
       const aiMsg: ChatMessage = {
@@ -133,25 +134,6 @@ export default function Assistant() {
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* SALUDO DE BIENVENIDA (dinámico, con el nombre del usuario logueado) */}
-        <View className="flex-row items-end gap-2 mb-4 justify-start">
-          <View className="w-8 h-8 rounded-full overflow-hidden bg-[#1A2540] items-center justify-center mb-1">
-            <Image 
-              source={robotImg} 
-              className="w-8 h-8"
-              resizeMode="cover"
-            />
-          </View>
-          <View 
-            className="max-w-[78%] rounded-2xl px-4 py-3 bg-[#EFF6FF]"
-            style={{ borderBottomLeftRadius: 4 }}
-          >
-            <Text className="text-[14px] leading-5 text-[#1E293B]">
-              Hola {displayName}, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.
-            </Text>
-          </View>
-        </View>
-
         {chatMessages.map((msg) => (
           <View 
             key={msg.id}
@@ -262,7 +244,7 @@ export default function Assistant() {
             inputText.trim() ? "bg-[#1E3A8A]" : "bg-gray-300"
           }`}
         >
-          {/* Icono de Enviar */}
+          {/* Icono de Enviar (Triángulo estilizado) */}
           <Text className="text-white text-base font-bold">➔</Text>
         </Pressable>
       </View>

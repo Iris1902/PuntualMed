@@ -44,20 +44,6 @@ export async function createMedication(input: MedicationInput): Promise<Medicati
   });
 }
 
-// Actualiza en el mismo registro (PATCH), en vez de borrar y crear uno nuevo:
-// preserva el id, no rompe los síntomas enlazados y no pierde los datos si la
-// petición falla a la mitad.
-export async function updateMedication(
-  id: string,
-  input: Partial<MedicationInput> & { active?: boolean },
-): Promise<Medication> {
-  return apiRequest<Medication>(`/api/v1/medications/${id}`, {
-    method: "PATCH",
-    body: input,
-    token: getAccessToken,
-  });
-}
-
 export async function deleteMedication(id: string): Promise<void> {
   await apiRequest<null>(`/api/v1/medications/${id}`, {
     method: "DELETE",

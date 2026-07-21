@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { getMedication, updateMedication } from "@/lib/meds-api";
+import { createMedication, deleteMedication, getMedication } from "@/lib/meds-api";
 import { FREQUENCIES, UNITS, toInput, validateMedForm, type MedForm } from "@/lib/med-form";
 import { useAsync } from "@/lib/use-async";
 
@@ -69,10 +69,8 @@ export default function EditMedication() {
     setError(null);
     setSaving(true);
     try {
-      // PATCH en el mismo registro: conserva el id (y por lo tanto el enlace
-      // con síntomas ya registrados) y regenera las tomas pendientes futuras
-      // en el backend cuando cambia fecha, duración u horarios.
-      await updateMedication(id, toInput(form));
+      await deleteMedication(id);
+      await createMedication(toInput(form));
       router.back();
     } catch {
       setError("No se pudo guardar");
