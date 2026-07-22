@@ -1,282 +1,192 @@
-import { useState, useRef, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, KeyboardAvoidingView, Platform, Image } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
-import { analyzeSymptoms, type AiMessage } from "@/lib/ai-api";
-import { listSymptoms } from "@/lib/symptoms-api";
-import { fetchMe } from "@/lib/users-api";
-import { useAuth } from "@/lib/auth";
-import { useAsync } from "@/lib/use-async";
+import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-// Importación de la imagen del robot
-import robotImg from "@/assets/images/imagen-2.png";
+import { palette } from "@/constants/puntualmed";
+import { useAuth } from "@/contexts/auth";
+import { aiChat } from "@/lib/api";
 
-interface ChatMessage {
-  id: string;
-  sender: "user" | "ai";
-  text: string;
-  timestamp: string;
-}
+const prompts = [
+  "Resume la adherencia de esta semana",
+  "Analiza sintomas historicos",
+  "Revisa posibles efectos secundarios",
+];
 
-// Función auxiliar para obtener la hora actual en formato local (ej: "8:41 AM")
-const getCurrentFormattedTime = () =>
-  new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-export default function Assistant() {
-  const router = useRouter();
+export default function AIScreen() {
   const { session } = useAuth();
-  const { data: user } = useAsync(fetchMe);
-  const { data: symptoms, reload } = useAsync(listSymptoms);
+  const token = session?.access_token ?? "";
+  const tabBarHeight = useBottomTabBarHeight();
 
-  // Obtener el primer nombre del usuario o fallback
-  const rawName = user?.full_name?.trim() || user?.name?.trim();
-  const firstName = rawName ? rawName.split(" ")[0] : session?.user?.email?.split("@")[0] || "Amig@";
-
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([
     {
-      id: "welcome",
-      sender: "ai",
-      text: `Hola ${firstName}, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.`,
-      timestamp: getCurrentFormattedTime(),
+      role: "ai",
+      content:
+        "Puedo ayudarte a leer recetas con OCR, revisar adherencia, sintomas y posibles efectos secundarios. Ante una urgencia, contacta a un profesional de salud.",
     },
   ]);
-
-  const [inputText, setInputText] = useState("");
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  // Actualiza el saludo del mensaje de bienvenida en cuanto se carguen los datos del usuario
-  useEffect(() => {
-    if (user?.full_name || user?.name) {
-      const updatedFirstName = (user.full_name || user.name || "").trim().split(" ")[0];
-      setChatMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === "welcome"
-            ? {
-                ...msg,
-                text: `Hola ${updatedFirstName}, soy tu asistente PuntualMed. Puedo ayudarte a revisar tu tratamiento, consultar efectos secundarios registrados o analizar cómo has seguido tus medicamentos.`,
-                timestamp: msg.timestamp || getCurrentFormattedTime(),
-              }
-            : msg
-        )
-      );
-    }
-  }, [user]);
-
-  useFocusEffect(
-    useRef(() => {
-      reload();
-    }).current
-  );
-
-  useEffect(() => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [chatMessages, loading]);
-
-  // Función unificada que procesa consultas escritas o sugerencias de síntomas
-  async function onAnalyze(symptomId?: string, customText?: string) {
-    if (loading) return;
-
-    const userQuery =
-      customText ||
-      (symptomId
-        ? `Analizar síntoma: "${symptomList.find((s) => s.id === symptomId)?.description}"`
-        : "Analizar todos los síntomas");
-
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text: userQuery,
-      timestamp: getCurrentFormattedTime(),
-    };
-
-    setChatMessages((prev) => [...prev, userMsg]);
-    setInputText("");
+  async function handleSend(msg?: string) {
+    const text = msg || input.trim();
+    if (!text) return;
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setInput("");
     setLoading(true);
-    setError(null);
-
     try {
-      const response: AiMessage = await analyzeSymptoms(symptomId);
-
-      const aiMsg: ChatMessage = {
-        id: response.id || `ai-${Date.now()}`,
-        sender: "ai",
-        text: response.content,
-        timestamp: getCurrentFormattedTime(),
-      };
-      setChatMessages((prev) => [...prev, aiMsg]);
+      const res = await aiChat(token, text);
+      setMessages((prev) => [...prev, { role: "ai", content: res.answer }]);
     } catch {
-      setError("No se pudo completar el análisis en este momento.");
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", content: "Error al comunicarse con la IA. Intenta de nuevo." },
+      ]);
     } finally {
       setLoading(false);
     }
   }
 
-  const symptomList = symptoms ?? [];
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-[#F3F4F6]"
-    >
-      {/* HEADER DE PUNTUALMED IA */}
-      <View className="bg-white flex-row items-center px-4 h-16 border-b border-[#F3F4F6] gap-3 pt-2">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-9 h-9 items-center justify-center rounded-full active:bg-gray-100"
-        >
-          <Text className="text-[#1E293B] text-2xl font-light">←</Text>
-        </Pressable>
-
-        {/* Avatar del Robot */}
-        <View className="w-10 h-10 rounded-full overflow-hidden bg-[#1A2540] items-center justify-center">
-          <Image source={robotImg} className="w-10 h-10" resizeMode="cover" />
-        </View>
-
-        <View className="flex-1">
-          <Text className="text-[#1E293B] font-semibold text-[15px]">PuntualMed IA</Text>
-          <View className="flex-row items-center gap-1 mt-0.5">
-            <View className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
-            <Text className="text-[#6B7280] text-[11px]">En línea</Text>
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <View style={[styles.container, { paddingBottom: tabBarHeight + 10 }]}>
+        <View style={styles.header}>
+          <View style={styles.botIcon}>
+            <Ionicons name="sparkles" size={24} color={palette.white} />
+          </View>
+          <View>
+            <Text style={styles.kicker}>Agente clinico</Text>
+            <Text style={styles.title}>PuntualMed IA</Text>
           </View>
         </View>
 
-        {/* Icono decorativo de robot a la derecha */}
-        <Text className="text-[#D1D5DB] text-xl">🤖</Text>
-      </View>
-
-      {/* LÍNEA DE ECG / PULSO MÉDICO */}
-      <View className="bg-white border-b border-[#F3F4F6] px-4 py-2 overflow-hidden">
-        <Text className="text-[#EFF6FF] text-3xl tracking-widest font-thin" numberOfLines={1}>
-          ~/\~/\/\_/\~/\_/\~/\~/\/\_/\~/\_/\~/\/\_/\~
-        </Text>
-      </View>
-
-      {/* CHAT DE MENSAJES */}
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1 px-4 py-4"
-        contentContainerStyle={{ paddingBottom: 140 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {chatMessages.map((msg) => (
-          <View
-            key={msg.id}
-            className={`flex-row items-end gap-2 mb-4 ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {msg.sender === "ai" && (
-              <View className="w-8 h-8 rounded-full overflow-hidden bg-[#1A2540] items-center justify-center mb-1">
-                <Image source={robotImg} className="w-8 h-8" resizeMode="cover" />
-              </View>
-            )}
-
+        <ScrollView contentContainerStyle={styles.chat}>
+          {messages.map((msg, i) => (
             <View
-              className={`max-w-[78%] rounded-2xl px-4 py-3 ${
-                msg.sender === "user" ? "bg-[#1E3A8A]" : "bg-[#EFF6FF]"
-              }`}
-              style={{
-                borderBottomLeftRadius: msg.sender === "ai" ? 4 : 16,
-                borderBottomRightRadius: msg.sender === "user" ? 4 : 16,
-              }}
+              key={i}
+              style={[msg.role === "ai" ? styles.messageAi : styles.messageUser]}
             >
               <Text
-                className={`text-[14px] leading-5 ${
-                  msg.sender === "user" ? "text-white" : "text-[#1E293B]"
-                }`}
+                style={[
+                  msg.role === "ai" ? styles.messageAiText : styles.messageUserText,
+                ]}
               >
-                {msg.text}
-              </Text>
-              <Text
-                className={`text-[10px] mt-1 text-right ${
-                  msg.sender === "user" ? "text-white/60" : "text-[#9CA3AF]"
-                }`}
-              >
-                {msg.timestamp}
+                {msg.content}
               </Text>
             </View>
-          </View>
-        ))}
-
-        {/* ERROR DE RED O API */}
-        {error ? (
-          <View className="bg-red-50 p-3 rounded-xl border border-red-100 my-2">
-            <Text className="text-[#EF4444] text-xs text-center font-medium">{error}</Text>
-          </View>
-        ) : null}
-
-        {/* ESTADO CARGANDO / PROCESANDO ANÁLISIS */}
-        {loading && (
-          <View className="flex-row items-end gap-2 mb-4 justify-start">
-            <View className="w-8 h-8 rounded-full overflow-hidden bg-[#1A2540] items-center justify-center mb-1">
-              <Image source={robotImg} className="w-8 h-8" resizeMode="cover" />
+          ))}
+          {loading && (
+            <View style={styles.messageAi}>
+              <ActivityIndicator color={palette.navy} />
             </View>
-            <View className="bg-[#EFF6FF] rounded-2xl rounded-bl-sm px-4 py-3">
-              <Text className="text-[#1E3A8A] text-xs font-semibold">Analizando...</Text>
-            </View>
-          </View>
-        )}
+          )}
+          {messages.length === 1 &&
+            prompts.map((prompt) => (
+              <Pressable
+                key={prompt}
+                style={styles.prompt}
+                onPress={() => handleSend(prompt)}
+              >
+                <Ionicons name="chevron-forward" size={18} color={palette.navy} />
+                <Text style={styles.promptText}>{prompt}</Text>
+              </Pressable>
+            ))}
+        </ScrollView>
 
-        {/* LISTADO DE SÍNTOMAS DEL USUARIO COMO SUGERENCIAS RÁPIDAS */}
-        {!loading && symptomList.length > 0 && (
-          <View className="mt-4">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
-            >
-              {symptomList.map((s) => (
-                <Pressable
-                  key={s.id}
-                  onPress={() => onAnalyze(s.id)}
-                  className="bg-white border border-[#E5E7EB] rounded-full px-4 py-2 active:bg-gray-50 active:scale-95"
-                >
-                  <Text className="text-[#1E293B] text-[13px] font-medium">
-                    {s.description}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* MENSAJE EN CASO DE NO CONTAR CON SÍNTOMAS REGISTRADOS */}
-        {!loading && symptomList.length === 0 && (
-          <View className="bg-white p-4 rounded-2xl border border-gray-100 items-center mt-4 mx-2">
-            <Text className="text-center text-[#6B7280] text-xs leading-5">
-              No tienes síntomas registrados actualmente. Registra uno nuevo para iniciar análisis específicos.
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* INPUT BARRA DE CONSULTA INFERIOR */}
-      <View className="absolute bottom-6 left-0 right-0 bg-white border-t border-[#F3F4F6] px-4 py-3 flex-row items-center gap-3">
-        <View className="flex-1 bg-[#F3F4F6] border border-[#E5E7EB] rounded-full px-4 justify-center h-11">
+        <View style={styles.composer}>
           <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Escribe tu consulta..."
-            placeholderTextColor="#9CA3AF"
-            className="text-sm text-[#1E293B]"
-            onSubmitEditing={() => inputText.trim() && onAnalyze(undefined, inputText)}
+            placeholder="Pregunta sobre sintomas o tratamiento"
+            placeholderTextColor={palette.grayLight}
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={() => handleSend()}
           />
+          <Pressable
+            style={[styles.send, loading && { opacity: 0.6 }]}
+            onPress={() => handleSend()}
+            disabled={loading}
+          >
+            <Ionicons name="send" size={18} color={palette.white} />
+          </Pressable>
         </View>
-
-        <Pressable
-          onPress={() => inputText.trim() && onAnalyze(undefined, inputText)}
-          disabled={loading || !inputText.trim()}
-          className={`w-11 h-11 rounded-full items-center justify-center active:scale-95 ${
-            inputText.trim() ? "bg-[#1E3A8A]" : "bg-gray-300"
-          }`}
-        >
-          <Text className="text-white text-base font-bold">➔</Text>
-        </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: palette.bg },
+  container: { flex: 1, padding: 20 },
+  header: { alignItems: "center", flexDirection: "row", gap: 12 },
+  botIcon: {
+    alignItems: "center",
+    backgroundColor: palette.navy,
+    borderRadius: 18,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  kicker: { color: palette.gray, fontSize: 13 },
+  title: { color: palette.slate, fontSize: 26, fontWeight: "900" },
+  chat: { gap: 12, paddingVertical: 20 },
+  messageAi: {
+    alignSelf: "flex-start",
+    backgroundColor: palette.white,
+    borderRadius: 18,
+    maxWidth: "92%",
+    padding: 16,
+  },
+  messageAiText: { color: palette.slate, fontSize: 15, lineHeight: 22 },
+  messageUser: {
+    alignSelf: "flex-end",
+    backgroundColor: palette.navy,
+    borderRadius: 18,
+    maxWidth: "92%",
+    padding: 16,
+  },
+  messageUserText: { color: palette.white, fontSize: 15, lineHeight: 22 },
+  prompt: {
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    padding: 14,
+  },
+  promptText: { color: palette.navy, flex: 1, fontWeight: "800" },
+  composer: {
+    alignItems: "center",
+    backgroundColor: palette.white,
+    borderRadius: 20,
+    flexDirection: "row",
+    gap: 10,
+    padding: 8,
+  },
+  input: {
+    color: palette.slate,
+    flex: 1,
+    fontSize: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  send: {
+    alignItems: "center",
+    backgroundColor: palette.navy,
+    borderRadius: 16,
+    height: 42,
+    justifyContent: "center",
+    width: 42,
+  },
+});
