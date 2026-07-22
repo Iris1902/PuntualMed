@@ -55,6 +55,12 @@ class MedicationUpdate(BaseModel):
     notes: str | None = None
     tags: list[str] | None = None
     active: bool | None = None
+    # Si se envia alguno de estos tres, el router regenera las tomas pendientes
+    # futuras (ver meds/router.py) para que el calendario refleje el cambio.
+    start_date: date | None = None
+    duration_days: int | None = Field(default=None, gt=0)
+    schedules: list[ScheduleCreate] | None = None
+
 
 
 class PrescriptionMedication(BaseModel):

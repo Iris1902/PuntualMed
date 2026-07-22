@@ -34,6 +34,18 @@ class _FakeRepo:
             items = [i for i in items if i.status == status]
         return sorted(items, key=lambda i: i.scheduled_at)
 
+    async def delete_pending_from(self, medication_id, from_dt):
+        doomed = [
+            i
+            for i in self.store.values()
+            if i.medication_id == medication_id
+            and i.status == "pending"
+            and i.scheduled_at >= from_dt
+        ]
+        for i in doomed:
+            del self.store[i.id]
+        return len(doomed)
+
 
 def _med(user_id, days=7, times=(time(8, 0), time(20, 0))) -> Medication:
     return Medication(
@@ -65,6 +77,60 @@ async def test_generate_uses_app_timezone():
     assert intakes[0].scheduled_at == expected
     # America/Guayaquil no observa DST, por lo que el offset UTC-5 es fijo
     assert intakes[0].scheduled_at.astimezone(UTC).hour == 13
+
+
+async def test_generate_from_date_skips_past_days():
+    user_id = uuid.uuid4()
+    repo = _FakeRepo()
+    service = IntakeService(repo)
+    med = _med(user_id, days=5, times=(time(8, 0),))  # 2026-06-19 .. 2026-06-23
+    intakes = await service.generate_for_medication(med, from_date=date(2026, 6, 21))
+    # Solo desde el 21 en adelante: 21, 22, 23 = 3 tomas (no 5)
+    assert len(intakes) == 3
+    assert min(i.scheduled_at.date() for i in intakes) == date(2026, 6, 21)
+
+
+async def test_regenerate_pending_from_today_keeps_history_and_replaces_future():
+    user_id = uuid.uuid4()
+    repo = _FakeRepo()
+    med = _med(user_id, days=5, times=(time(8, 0),))  # 2026-06-19 .. 2026-06-23
+
+    # Historial: una toma pasada ya confirmada y una pasada que quedo pendiente
+    # (ninguna debe tocarse), mas una pendiente futura con el horario viejo
+    # (esa si debe desaparecer al regenerar).
+    taken = IntakeLog(
+        id=uuid.uuid4(), user_id=user_id, medication_id=med.id,
+        scheduled_at=datetime(2026, 6, 19, 13, 0, tzinfo=UTC), status="taken",
+    )
+    old_pending_past = IntakeLog(
+        id=uuid.uuid4(), user_id=user_id, medication_id=med.id,
+        scheduled_at=datetime(2026, 6, 20, 13, 0, tzinfo=UTC), status="pending",
+    )
+    old_pending_future = IntakeLog(
+        id=uuid.uuid4(), user_id=user_id, medication_id=med.id,
+        scheduled_at=datetime(2026, 6, 22, 13, 0, tzinfo=UTC), status="pending",
+    )
+    for i in (taken, old_pending_past, old_pending_future):
+        repo.store[i.id] = i
+
+    service = IntakeService(repo)
+    now = datetime(2026, 6, 21, 12, 0, tzinfo=_TZ)  # "hoy" es el 21 a mediodia
+    # El medicamento ahora tiene un horario nuevo (9:00 en vez de 8:00)
+    med.schedules = [MedicationSchedule(id=uuid.uuid4(), time_of_day=time(9, 0))]
+
+    await service.regenerate_pending_from_today(med, now=now)
+
+    remaining = list(repo.store.values())
+    # El historial (taken y pending del pasado) sigue intacto
+    assert taken.id in repo.store
+    assert old_pending_past.id in repo.store
+    # La pendiente futura vieja fue reemplazada
+    assert old_pending_future.id not in repo.store
+    # Se generaron tomas nuevas desde hoy (21) hasta el fin (23) con el horario 9:00
+    new_ones = [i for i in remaining if i.id not in (taken.id, old_pending_past.id)]
+    assert len(new_ones) == 3  # 21, 22, 23
+    # 9:00 en America/Guayaquil (UTC-5, sin DST) equivale a las 14:00 UTC
+    assert all(i.scheduled_at.astimezone(UTC).hour == 14 for i in new_ones)
 
 
 async def test_confirm_sets_taken_and_photo():

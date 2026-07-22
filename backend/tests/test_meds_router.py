@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from app.core.security import CurrentUser, get_current_user
 from app.meds.models import Medication
@@ -30,6 +30,18 @@ class _FakeIntakeRepo:
 
     async def list_for_user(self, user_id, lower, upper, status):
         return [i for i in self.store.values() if i.user_id == user_id]
+
+    async def delete_pending_from(self, medication_id, from_dt):
+        doomed = [
+            i
+            for i in self.store.values()
+            if i.medication_id == medication_id
+            and i.status == "pending"
+            and i.scheduled_at >= from_dt
+        ]
+        for i in doomed:
+            del self.store[i.id]
+        return len(doomed)
 
 
 class _FakeRepo:
@@ -216,3 +228,52 @@ async def test_create_medication_generates_intakes(app, client):
     # 7 dias x 2 horarios = 14 tomas generadas
     assert len(intake_repo.store) == 14
     assert all(i.user_id == _USER_ID for i in intake_repo.store.values())
+
+
+async def test_patch_medication_only_renaming_does_not_touch_intakes(app, client):
+    repo = _FakeRepo()
+    intake_repo = _FakeIntakeRepo()
+    med = _seed_medication(repo, _USER_ID)
+    app.dependency_overrides[get_current_user] = _override_auth
+    app.dependency_overrides[get_medication_service] = lambda: MedicationService(repo)
+    app.dependency_overrides[get_intake_service] = lambda: IntakeService(intake_repo)
+    try:
+        response = await client.patch(
+            f"/api/v1/medications/{med.id}", json={"name": "Acetaminofen"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json()["name"] == "Acetaminofen"
+    # Cambiar solo el nombre no debe generar ni borrar ninguna toma
+    assert intake_repo.store == {}
+
+
+async def test_patch_medication_changing_schedule_regenerates_intakes(app, client):
+    repo = _FakeRepo()
+    intake_repo = _FakeIntakeRepo()
+    med = _seed_medication(repo, _USER_ID)  # fechas viejas, sin horarios propios
+    app.dependency_overrides[get_current_user] = _override_auth
+    app.dependency_overrides[get_medication_service] = lambda: MedicationService(repo)
+    app.dependency_overrides[get_intake_service] = lambda: IntakeService(intake_repo)
+    # Ventana relativa a "hoy" (donde sea que corra el test) para que
+    # regenerate_pending_from_today, que usa la hora real, sí genere tomas.
+    new_start = date.today() + timedelta(days=1)
+    new_end = new_start + timedelta(days=3)  # end_date = start_date + duration_days
+    try:
+        response = await client.patch(
+            f"/api/v1/medications/{med.id}",
+            json={
+                "start_date": new_start.isoformat(),
+                "duration_days": 3,
+                "schedules": [{"time_of_day": "09:00:00"}],
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["start_date"] == new_start.isoformat()
+    assert body["end_date"] == new_end.isoformat()
+    # Se regeneran 3 tomas (una por dia) con el horario nuevo (9:00)
+    assert len(intake_repo.store) == 3

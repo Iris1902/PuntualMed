@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.reminders.models import IntakeLog
@@ -81,6 +81,21 @@ class IntakeRepository:
     async def mark_alerted(self, intake: IntakeLog) -> None:
         intake.alert_sent = True
         await self._session.flush()
+
+    async def delete_pending_from(
+        self, medication_id: uuid.UUID, from_dt: datetime
+    ) -> int:
+        # Borra solo tomas futuras y aun pendientes de un medicamento; conserva
+        # el historial ya resuelto (taken/missed) al editar fecha/duracion/horarios.
+        result = await self._session.execute(
+            delete(IntakeLog).where(
+                IntakeLog.medication_id == medication_id,
+                IntakeLog.status == "pending",
+                IntakeLog.scheduled_at >= from_dt,
+            )
+        )
+        await self._session.flush()
+        return result.rowcount or 0
 
     async def mark_missed_before(self, cutoff: datetime) -> int:
         # Marca como vencidas las tomas pendientes cuya hora ya paso el margen de gracia.

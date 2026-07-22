@@ -116,8 +116,33 @@ class MedicationService:
             medication.tags = data.tags
         if data.active is not None:
             medication.active = data.active
-            
+        if data.start_date is not None:
+            medication.start_date = data.start_date
+        if data.duration_days is not None:
+            medication.duration_days = data.duration_days
+        if data.start_date is not None or data.duration_days is not None:
+            # end_date es derivado; se recalcula si cambio cualquiera de los dos
+            medication.end_date = medication.start_date + timedelta(
+                days=medication.duration_days
+            )
+        if data.schedules is not None:
+            # Reemplaza los horarios; el cascade="all, delete-orphan" del modelo
+            # borra los anteriores. Las tomas ya generadas (reminders) no se
+            # tocan aqui: eso lo maneja el router llamando a IntakeService.
+            medication.schedules = [
+                MedicationSchedule(id=uuid.uuid4(), time_of_day=s.time_of_day)
+                for s in data.schedules
+            ]
         return await self._repository.add(medication)
+
+    @staticmethod
+    def schedule_changed(data: MedicationUpdate) -> bool:
+        # True si el update requiere regenerar las tomas pendientes futuras
+        return (
+            data.start_date is not None
+            or data.duration_days is not None
+            or data.schedules is not None
+        )
 
     async def delete(
         self, user_id: uuid.UUID, medication_id: uuid.UUID

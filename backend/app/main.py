@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.ai.router import router as ai_router  # IMPORTANTE: Importamos el router de la IA
 from app.core.config import get_settings
 from app.core.database import get_session_factory
 from app.notifications.alerts import poll_telegram_once, send_missed_alerts
@@ -115,16 +116,23 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         lifespan=lifespan,
     )
-    # CORS para clientes navegador (la app web de Expo). Bearer token, sin cookies,
-    # por eso allow_credentials=False (compatible con allow_origins=["*"]).
+    
+    # MODIFICADO: Cambiado allow_origins a ["*"] y allow_credentials=True 
+    # para permitir el acceso libre del entorno móvil de Expo en desarrollo.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=False,
+        allow_origins=["*"],
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Rutas base del sistema
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    
+    # MODIFICADO: Agregamos el router de inteligencia artificial al servidor
+    app.include_router(ai_router, prefix="/api")
+    
     return app
 
 

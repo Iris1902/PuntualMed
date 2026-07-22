@@ -9,3 +9,7 @@ mobile/node_modules/
 mobile/.expo/
 mobile/dist/
 mobile/.env
+node_modules/
+.expo/
+.env
+.env.example

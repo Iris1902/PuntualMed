@@ -1,4 +1,4 @@
-import { formatTime } from "@/lib/home-data";
+import { formatTime } from "@/lib/date-utils";
 import type { Intake } from "@/lib/intakes-api";
 import type { Medication } from "@/lib/meds-api";
 import type { Symptom } from "@/lib/symptoms-api";
@@ -6,7 +6,7 @@ import type { Symptom } from "@/lib/symptoms-api";
 type DayFlags = { taken: boolean; missed: boolean; symptom: boolean; pending: boolean };
 type EffectiveStatus = "taken" | "missed" | "pending";
 
-// Clave de dia local YYYY-MM-DD.
+// Clave de día local YYYY-MM-DD.
 export function dayKey(iso: string): string {
   const d = new Date(iso);
   const month = `${d.getMonth() + 1}`.padStart(2, "0");

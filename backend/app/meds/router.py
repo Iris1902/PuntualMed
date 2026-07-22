@@ -117,10 +117,15 @@ async def update_medication(
     data: MedicationUpdate,
     current: CurrentUser = Depends(get_current_user),
     service: MedicationService = Depends(get_medication_service),
+    intake_service: IntakeService = Depends(get_intake_service),
 ) -> MedicationRead:
     medication = await service.update(current.id, medication_id, data)
     if medication is None:
         raise _NOT_FOUND
+    if MedicationService.schedule_changed(data):
+        # Cambio la fecha de inicio, duracion u horarios: las tomas futuras que
+        # seguian pendientes con los datos viejos ya no aplican, se recalculan.
+        await intake_service.regenerate_pending_from_today(medication)
     return MedicationRead.model_validate(medication)
 
 

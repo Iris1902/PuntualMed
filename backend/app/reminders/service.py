@@ -13,13 +13,20 @@ class IntakeService:
     def __init__(self, repository: IntakeRepository) -> None:
         self._repository = repository
 
-    async def generate_for_medication(self, med: Medication) -> list[IntakeLog]:
+    async def generate_for_medication(
+        self, med: Medication, from_date: date | None = None
+    ) -> list[IntakeLog]:
         # Una toma por cada dia del tratamiento [start_date, start_date+duration_days)
         # x cada horario, programada en la zona horaria configurada.
+        # from_date permite saltarse dias ya pasados (usado al editar un tratamiento
+        # para no re-generar tomas de dias que ya tienen historial).
         tz = ZoneInfo(get_settings().app_timezone)
+        floor = max(from_date, med.start_date) if from_date else med.start_date
         intakes: list[IntakeLog] = []
         for offset in range(med.duration_days):
             day = med.start_date + timedelta(days=offset)
+            if day < floor:
+                continue
             for schedule in med.schedules:
                 scheduled_at = datetime.combine(day, schedule.time_of_day, tzinfo=tz)
                 intakes.append(
@@ -32,6 +39,17 @@ class IntakeService:
                     )
                 )
         return await self._repository.add_many(intakes)
+
+    async def regenerate_pending_from_today(
+        self, med: Medication, now: datetime | None = None
+    ) -> list[IntakeLog]:
+        # Se usa al editar fecha de inicio, duracion u horarios de un medicamento:
+        # borra solo las tomas futuras que seguian pendientes y las recrea con
+        # los datos nuevos, sin tocar tomas ya tomadas/vencidas (historial real).
+        # `now` es inyectable (por defecto la hora real) para poder testear sin mockear el reloj.
+        current = now or datetime.now(ZoneInfo(get_settings().app_timezone))
+        await self._repository.delete_pending_from(med.id, current)
+        return await self.generate_for_medication(med, from_date=current.date())
 
     async def list_for_user(
         self,

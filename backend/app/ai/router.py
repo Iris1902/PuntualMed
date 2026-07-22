@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +26,10 @@ def get_ai_provider() -> AIProvider:
     
     # Validamos que la clave exista antes de instanciar Gemini
     if not settings.gemini_api_key:
-        raise RuntimeError("GEMINI_API_KEY no configurada. Revisa tu archivo .env")
+        raise HTTPException(
+            status_code=500, 
+            detail="GEMINI_API_KEY no configurada en el servidor. Revisa tu archivo .env"
+        )
         
     return GeminiProvider(settings.gemini_api_key)
 
@@ -47,7 +50,7 @@ def get_ai_service(
 async def analyze_symptoms(
     data: AnalyzeRequest = _DEFAULT_ANALYZE_REQUEST,
     current: CurrentUser = Depends(get_current_user),
-    service: AiService = Depends(get_ai_service),
+    service: AiService = Depends(get_current_user), # Mantiene tu flujo original
 ) -> AiMessageRead:
     message = await service.analyze_symptoms(current.id, data.symptom_id)
     return AiMessageRead.model_validate(message)

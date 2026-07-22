@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -11,6 +12,14 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { AuthProvider, nextRoute, useAuth } from "@/lib/auth";
+
+// Desactivar de forma segura la advertencia estricta de Reanimated en la terminal
+import { ReanimatedLogLevel, configureReanimatedLogger } from 'react-native-reanimated';
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,8 +60,10 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

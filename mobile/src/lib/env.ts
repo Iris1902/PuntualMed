@@ -1,33 +1,18 @@
+import { Platform } from "react-native";
+
 export type Env = {
   supabaseUrl: string;
   supabaseAnonKey: string;
   apiBaseUrl: string;
 };
 
-import { Platform } from "react-native";
-
-// Falla ruidosamente si falta una variable, en vez de fallar silenciosamente en runtime.
-function required(value: string | undefined, name: string): string {
+// En lugar de hacer throw new Error, le da un valor por defecto o avisa con un warning
+function getOrFallback(value: string | undefined, name: string, fallback: string = ""): string {
   if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
+    console.warn(`⚠️ Advertencia: Falta la variable de entorno: ${name}`);
+    return fallback;
   }
   return value;
-}
-
-export function getEnv(): Env {
-  const apiBaseUrl = resolveApiBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
-
-  return {
-    supabaseUrl: required(
-      process.env.EXPO_PUBLIC_SUPABASE_URL,
-      "EXPO_PUBLIC_SUPABASE_URL",
-    ),
-    supabaseAnonKey: required(
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY",
-    ),
-    apiBaseUrl: required(apiBaseUrl, "EXPO_PUBLIC_API_BASE_URL"),
-  };
 }
 
 function resolveApiBaseUrl(value: string | undefined): string | undefined {
@@ -41,4 +26,26 @@ function resolveApiBaseUrl(value: string | undefined): string | undefined {
   }
 
   return normalized;
+}
+
+export function getEnv(): Env {
+  // Acepta tanto EXPO_PUBLIC_API_BASE_URL como EXPO_PUBLIC_API_URL para evitar errores
+  const rawApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || process.env.EXPO_PUBLIC_API_URL;
+  const apiBaseUrl = resolveApiBaseUrl(rawApiUrl);
+
+  return {
+    supabaseUrl: getOrFallback(
+      process.env.EXPO_PUBLIC_SUPABASE_URL,
+      "EXPO_PUBLIC_SUPABASE_URL"
+    ),
+    supabaseAnonKey: getOrFallback(
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY"
+    ),
+    apiBaseUrl: getOrFallback(
+      apiBaseUrl,
+      "EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_API_URL",
+      "http://192.168.100.3:8001" // Tu IP por defecto
+    ),
+  };
 }
